@@ -3,7 +3,7 @@
  */
 window.PVQ_CONFIG = {
   // Google Apps Script 網頁應用程式網址（…/exec）。留空 = 不記錄、不同步、不顯示排行榜
-  API: "",
+  API: "https://script.google.com/macros/s/AKfycbxiyYqSsn1uz88W_FlO7FjUUtL3idEWHONu2CrQD4CSUmweLPddnEnKREtdmGEDG4Cf7A/exec",
   // true = 只允許試算表「名單」工作表上的 學號＋姓名 登入（需先設定 API）
   ROSTER: false,
   // true = 所有章節直接開放；false = 要先擊敗前一章魔王（學生仍可選擇「跳關」，會被記錄）

@@ -196,7 +196,8 @@ table.data th{background:#f8f5ec}
     <div id="stepLogin" class="hidden">
       <div class="ticket">✅ 入場券有效！<br><b>第二步：登錄修練者身分</b>（用來保存進度與學習紀錄）</div>
       <div class="field"><label for="sid">學號</label><input id="sid" autocomplete="off" placeholder="例如 M11328001"></div>
-      <div class="field"><label for="sname">姓名</label><input id="sname" autocomplete="off" placeholder="真實姓名"></div>
+      <div class="field"><label for="sname">真實姓名 <span class="muted" style="font-weight:400">（只有老師看得到）</span></label><input id="sname" autocomplete="off" placeholder="例如 王小明"></div>
+      <div class="field"><label for="snick">暱稱 <span class="muted" style="font-weight:400">（顯示在排行榜，大家看得到）</span></label><input id="snick" autocomplete="off" maxlength="12" placeholder="例如 光子小王子"></div>
       <button class="btn wide" id="btnLogin">開始修練 ▶</button>
       <div class="err" id="errLogin"></div>
       <div class="muted" style="font-size:12px;margin-top:8px">你的作答、花費時間與自評會傳給指導老師，用來調整教學。</div>
@@ -248,6 +249,7 @@ const PAYLOAD = window.PVQ_PAYLOAD || {};
 const CH = [];            // chapters (filled after decrypt)
 const GLOSS = [];         // glossary entries
 const CARDS = [];         // collectible scientist cards
+const PLACEMENT = [];     // 入門資質鑑定題
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -270,8 +272,29 @@ async function decryptPayload(pass) {
 }
 function loadContent(src) {
   // content files call CH.push / GLOSS.push / CARDS.push
-  new Function('CH', 'GLOSS', 'CARDS', src)(CH, GLOSS, CARDS);
-  CH.sort((a, b) => a.id - b.id);
+  new Function('CH', 'GLOSS', 'CARDS', 'PLACEMENT', src)(CH, GLOSS, CARDS, PLACEMENT);
+  arrange();
+}
+
+/* ---------------- 課程分區：基本知識 / 進階知識 ---------------- */
+const PARTS = {
+  basic: { icon: '🟦', name: '基本知識：半導體元件基礎', desc: '能帶、載子、產生與複合、接面、p-n 結二極體——所有半導體元件共通的地基。' },
+  adv: { icon: '🟧', name: '進階知識：太陽電池', desc: '把半導體基礎用在太陽電池：特性與效率極限、各種電池技術、光學管理與新概念。' }
+};
+// [原書章節 id, 分區]；顯示順序即修練順序
+const ORDER = [[0, 'basic'], [3, 'basic'], [4, 'basic'], [5, 'basic'], [6, 'basic'],
+  [1, 'adv'], [2, 'adv'], [7, 'adv'], [8, 'adv'], [9, 'adv'], [10, 'adv'], [11, 'adv'], [12, 'adv'], [13, 'adv']];
+function arrange() {
+  CH.forEach(c => { const k = ORDER.findIndex(o => o[0] === c.id); c.ord = k < 0 ? 99 : k; c.part = k < 0 ? 'adv' : ORDER[k][1]; });
+  CH.sort((a, b) => a.ord - b.ord);
+  let nb = 0, na = 0;
+  CH.forEach(c => {
+    if (c.id === 0) c.label = '新手村';
+    else if (c.bonus) c.label = '進階・番外篇';
+    else if (c.part === 'basic') c.label = '基礎 第 ' + (++nb) + ' 關';
+    else c.label = '進階 第 ' + (++na) + ' 關';
+    c.orig = (c.id === 0 || c.bonus) ? '' : 'Nelson 原書第 ' + c.id + ' 章';
+  });
 }
 
 /* ---------------- records to Google Sheet ---------------- */
@@ -280,7 +303,7 @@ const Rec = {
   init() { this.q = LS.get(KEYP + 'outbox', []); setInterval(() => this.flush(), 15000); },
   send(type, data) {
     if (!CONFIG.API) return;
-    this.q.push(Object.assign({ type, sid: S.sid, name: S.name, ts: new Date().toISOString(), app: 'PVQuest' }, data));
+    this.q.push(Object.assign({ type, sid: S.sid, name: S.name, nick: S.nick, ts: new Date().toISOString(), app: 'PVQuest' }, data));
     LS.set(KEYP + 'outbox', this.q.slice(-300));
     clearTimeout(this._t); this._t = setTimeout(() => this.flush(), 1500);
   },
@@ -311,7 +334,7 @@ function save(sync = true) {
   S.updated = Date.now();
   LS.set(KEYP + 'st_' + S.sid, S);
   if (sync && CONFIG.API) { clearTimeout(save._t); save._t = setTimeout(() => {
-    Rec.send('progress', { xp: S.xp, level: levelOf(S.xp).lv, data: JSON.stringify(S) }); }, 4000); }
+    Rec.send('progress', { xp: S.xp, level: levelOf(S.xp).lv, data: JSON.stringify(Object.assign({}, S, { name: '' })) }); }, 4000); }
 }
 const LEVELS = [
   [0, '光子見習生'], [60, '能帶探路者'], [150, '載子學徒'], [280, '費米能階觀測員'], [450, '擴散長度測量師'],
@@ -338,7 +361,7 @@ function addXP(n, why) {
 }
 function renderHUD() {
   const L = levelOf(S.xp);
-  $('#pName').textContent = S.name;
+  $('#pName').textContent = S.nick || S.name;
   $('#pLv').textContent = 'Lv' + L.lv;
   $('#pTitle').textContent = L.title;
   $('#pXp').style.width = (L.frac * 100) + '%';
@@ -396,8 +419,10 @@ function chapterDone(c) { return !c.boss || (S.boss[c.id] && S.boss[c.id].win); 
 function unlocked(c) {
   if (CONFIG.FREE_ROAM) return true;
   const i = CH.indexOf(c);
-  if (i <= 1) return true;             // 新手村 & 第一章永遠開放
-  if (c.free) return true;
+  if (i <= 1) return true;             // 新手村 & 基礎第 1 關永遠開放
+  const tier = S.placement ? S.placement.tier : 0;
+  if (tier >= 2) return true;                          // 鑑定為進階：全部開放
+  if (tier >= 1 && c.part === 'basic') return true;    // 鑑定為基礎：基本知識區全開
   return !!(chapterDone(CH[i - 1]) || (S.skip && S.skip[c.id]));
 }
 function chStats(c) {
@@ -413,7 +438,7 @@ function go(v, arg) {
   curView = v;
   $$('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.v === v || (v === 'chapter' && b.dataset.v === 'map')));
   const V = $('#view'); V.innerHTML = '';
-  ({ map: viewMap, chapter: viewChapter, tools: viewTools, formulas: viewFormulas, glossary: viewGlossary, wrong: viewWrong, hall: viewHall, me: viewMe })[v](V, arg);
+  ({ placement: viewPlacement, map: viewMap, chapter: viewChapter, tools: viewTools, formulas: viewFormulas, glossary: viewGlossary, wrong: viewWrong, hall: viewHall, me: viewMe })[v](V, arg);
   typeset(V);
   window.scrollTo(0, 0);
   if (v === 'chapter') { curCh = arg; enterT = Date.now(); history.replaceState(null, '', '#ch=' + arg); }
@@ -438,26 +463,36 @@ document.addEventListener('visibilitychange', () => {
 /* ---------------- views: map ---------------- */
 function viewMap(V) {
   const L = levelOf(S.xp);
-  V.innerHTML = `<div class="welcome"><h2>歡迎回來，${esc(S.name)}！</h2>
-    <div>目前稱號：<b style="color:#fbbf24">${L.title}</b>　🔥 連續修練 ${streak()} 天　🃏 科學家卡 ${(S.cards||[]).length}/${CARDS.length}</div>
-    <div class="muted" style="color:#94a3b8;font-size:14px;margin-top:4px">路線：每章先讀觀念 → 過每個節點的小測驗 → 練計算題 → 挑戰魔王。擊敗魔王才會開啟下一章${CONFIG.FREE_ROAM ? '（老師已開放自由探索，所有章節都能進入）' : ''}。</div></div>
-    <div class="mapgrid" id="mg"></div>`;
-  const mg = $('#mg', V);
-  CH.forEach(c => {
-    const st = chStats(c), ok = unlocked(c), done = chapterDone(c) && c.boss;
-    const d = document.createElement('div');
-    d.className = 'stage' + (ok ? '' : ' locked');
-    d.innerHTML = `${done ? '<div class="crown">👑</div>' : ''}<div class="ic">${c.icon || '☀️'}</div>
-      <div class="no">${c.id === 0 ? '新手村' : c.bonus ? '番外篇' : '第 ' + c.id + ' 章'} ${ok ? '' : '🔒'}</div>
-      <h3>${esc(c.title)}</h3><div class="muted" style="font-size:13px">${esc(c.en || '')}</div>
-      <div style="font-size:13px;margin-top:6px">觀念 ${st.d}/${st.n}・計算 ${st.pd}/${st.pn}${c.boss ? '・魔王 ' + (done ? '✅' : '⬜') : ''}</div>
-      <div class="prog"><i style="width:${Math.round(st.frac * 100)}%"></i></div>`;
-    d.onclick = () => {
-      if (ok) return go('chapter', c.id);
-      modal(`<div class="cardart">🔒</div><h3>這一章還沒解鎖</h3><p>先擊敗前一章的魔王就能進入。<br>如果你已經學過這部分，也可以直接跳關（不影響經驗值，但會被記錄）。</p>
-        <button class="btn ghost" onclick="closeModal()">先不要</button> <button class="btn" onclick="skipTo(${c.id})">我要跳關</button>`);
-    };
-    mg.appendChild(d);
+  const T = S.placement ? TIERS[S.placement.tier] : null;
+  V.innerHTML = `<div class="welcome"><h2>歡迎回來，${esc(S.nick || S.name)}！</h2>
+    <div>目前稱號：<b style="color:#fbbf24">${L.title}</b>　🔥 連續修練 ${streak()} 天　🃏 科學家卡 ${(S.cards||[]).length}/${CARDS.length}${T ? '　🎓 資質：' + T.e + ' ' + T.n : ''}</div>
+    <div class="muted" style="color:#94a3b8;font-size:14px;margin-top:4px">路線：先修「基本知識」打好半導體地基，再進入「進階知識」學太陽電池。每關：讀觀念 → 過節點小測驗 → 練計算題 → 挑戰魔王，擊敗魔王才會開啟下一關${CONFIG.FREE_ROAM ? '（老師已開放自由探索，所有關卡都能進入）' : ''}。</div></div>
+    <div id="zones"></div>`;
+  const Z = $('#zones', V);
+  ['basic', 'adv'].forEach(pk => {
+    const P = PARTS[pk], list = CH.filter(c => c.part === pk);
+    const doneN = list.filter(c => c.boss && chapterDone(c)).length, bossN = list.filter(c => c.boss).length;
+    const sec = document.createElement('div');
+    sec.innerHTML = `<h2 style="color:#fff;margin:22px 0 2px">${P.icon} ${P.name} <span style="font-size:14px;color:#fbbf24">魔王 ${doneN}/${bossN}</span></h2>
+      <div style="color:#94a3b8;font-size:14px;margin-bottom:8px">${P.desc}</div><div class="mapgrid"></div>`;
+    const mg = $('.mapgrid', sec);
+    list.forEach(c => {
+      const st = chStats(c), ok = unlocked(c), done = chapterDone(c) && c.boss;
+      const d = document.createElement('div');
+      d.className = 'stage' + (ok ? '' : ' locked');
+      d.innerHTML = `${done ? '<div class="crown">👑</div>' : ''}<div class="ic">${c.icon || '☀️'}</div>
+        <div class="no">${c.label} ${ok ? '' : '🔒'}</div>
+        <h3>${esc(c.title)}</h3><div class="muted" style="font-size:13px">${esc(c.en || '')}${c.orig ? '<br>📘 ' + c.orig : ''}</div>
+        <div style="font-size:13px;margin-top:6px">觀念 ${st.d}/${st.n}・計算 ${st.pd}/${st.pn}${c.boss ? '・魔王 ' + (done ? '✅' : '⬜') : ''}</div>
+        <div class="prog"><i style="width:${Math.round(st.frac * 100)}%"></i></div>`;
+      d.onclick = () => {
+        if (ok) return go('chapter', c.id);
+        modal(`<div class="cardart">🔒</div><h3>這一關還沒解鎖</h3><p>先擊敗前一關的魔王就能進入。<br>如果你已經學過這部分，也可以直接跳關（會被記錄）。</p>
+          <button class="btn ghost" onclick="closeModal()">先不要</button> <button class="btn" onclick="skipTo(${c.id})">我要跳關</button>`);
+      };
+      mg.appendChild(d);
+    });
+    Z.appendChild(sec);
   });
 }
 function skipTo(id) { S.skip = S.skip || {}; S.skip[id] = 1; save(); Rec.send('skip', { ch: id }); closeModal(); go('chapter', id); }
@@ -466,11 +501,11 @@ function skipTo(id) { S.skip = S.skip || {}; S.skip[id] = 1; save(); Rec.send('s
 function viewChapter(V, id) {
   const c = CH.find(x => x.id === id); if (!c) return go('map');
   V.innerHTML = `<button class="btn ghost small" style="color:#fff;border-color:#475569" onclick="go('map')">← 回地圖</button>
-  <div class="chhead"><div class="muted" style="color:#fbbf24;font-weight:700">${c.id === 0 ? '新手村' : c.bonus ? '番外篇' : '第 ' + c.id + ' 章'}</div>
+  <div class="chhead"><div class="muted" style="color:#fbbf24;font-weight:700">${c.label}</div>
     <h2>${c.icon || ''} ${esc(c.title)}</h2><div class="src">${esc(c.en || '')}</div>
     ${c.story ? `<p style="margin:10px 0 4px">${c.story}</p>` : ''}
     ${c.goals ? `<div style="font-weight:700;margin-top:8px">🎯 本章學完你應該能夠：</div><ul class="goals">${c.goals.map(g => `<li>${g}</li>`).join('')}</ul>` : ''}
-    <div class="src" style="margin-top:8px">📚 對應教材：${c.src || ''}</div>
+    <div class="src" style="margin-top:8px">📚 對應教材：${c.src || ''}${c.orig ? '<br>📘 本關＝' + c.orig + '（文中提到「第 X 章」時，指的是 Nelson 原書章節）' : ''}</div>
     <div class="path" id="path"></div></div>
   <div id="concepts"></div><div id="probs"></div><div id="bossArea"></div>`;
   const P = $('#path', V);
@@ -746,7 +781,7 @@ function viewFormulas(V) {
       const f2 = items.filter(([k, f]) => !kw || (f.name + f.meaning + f.tex + k.title).toLowerCase().includes(kw.toLowerCase()));
       if (!f2.length) return;
       const d = document.createElement('div'); d.className = 'card';
-      d.innerHTML = `<h3 style="margin:0">${c.icon || ''} ${c.id === 0 ? '新手村' : c.bonus ? '番外篇' : '第 ' + c.id + ' 章'}　${esc(c.title)}</h3>` + f2.map(([k, f]) => `<div class="muted" style="font-size:13px;margin-top:10px">節點 ${k.id}・${esc(k.title)}</div>` + formulaCard(f)).join('');
+      d.innerHTML = `<h3 style="margin:0">${c.icon || ''} ${c.label}　${esc(c.title)}</h3>` + f2.map(([k, f]) => `<div class="muted" style="font-size:13px;margin-top:10px">節點 ${k.id}・${esc(k.title)}</div>` + formulaCard(f)).join('');
       L.appendChild(d);
     });
     typeset(L);
@@ -782,7 +817,7 @@ function viewWrong(V) {
     }
     const f = findQ(key); if (!f || !f.q) return;
     const d = document.createElement('div'); d.className = 'card';
-    d.innerHTML = `<div class="muted" style="font-size:13px">${f.c.id === 0 ? '新手村' : '第 ' + f.c.id + ' 章'}${f.k ? '・節點 ' + f.k.id + ' ' + esc(f.k.title) : '・魔王題'}</div>`;
+    d.innerHTML = `<div class="muted" style="font-size:13px">${f.c.label}${f.k ? '・節點 ' + f.k.id + ' ' + esc(f.k.title) : '・魔王題'}</div>`;
     d.appendChild(renderQ(f.q, key, { ch: f.c.id, concept: f.k, chapter: f.c, fresh: true }));
     W.appendChild(d);
   });
@@ -802,23 +837,86 @@ async function viewHall(V) {
   const r = await apiGet({ action: 'board' });
   if (!r || !r.rows) { $('#lb', V).textContent = '暫時讀不到排行榜（可能網路不穩），稍後再試。'; return; }
   $('#lb', V).innerHTML = `<table class="board"><tr><th>#</th><th>修練者</th><th>等級</th><th>XP</th><th>魔王</th></tr>${r.rows.map((x, i) =>
-    `<tr class="${x.sid === S.sid ? 'me' : ''}"><td>${i < 3 ? ['🥇', '🥈', '🥉'][i] : i + 1}</td><td>${esc(x.name)}</td><td>Lv${x.level} ${esc(levelOf(x.xp).title)}</td><td>${x.xp}</td><td>${x.boss || 0}</td></tr>`).join('')}</table>`;
+    `<tr class="${x.sid === S.sid ? 'me' : ''}"><td>${i < 3 ? ['🥇', '🥈', '🥉'][i] : i + 1}</td><td>${esc(x.nick || '匿名修練者')}</td><td>Lv${x.level} ${esc(levelOf(x.xp).title)}</td><td>${x.xp}</td><td>${x.boss || 0}</td></tr>`).join('')}</table>`;
 }
 function showCard(id) { const k = CARDS.find(x => x.id === id); modal(`<div class="cardart">${k.e}</div><h2 style="margin:4px 0">${k.n}</h2><div class="muted">${k.y || ''}</div><p style="text-align:left">${k.d}</p><button class="btn" onclick="closeModal()">關閉</button>`); }
+
+/* ---------------- 入門資質鑑定（分級測驗） ---------------- */
+const TIERS = [
+  { e: '🌱', n: '初心修練者', d: '從「新手村」開始，一步一步把基礎打穩。這不是壞事——地基越穩，後面越好爬！' },
+  { e: '🔷', n: '基礎修練者', d: '你的數理與半導體概念不錯：「基本知識」區全部開放，可挑自己弱的關卡加強；打完基本區魔王後進入「進階知識」。' },
+  { e: '🔶', n: '進階修練者', d: '你已經有半導體與太陽電池的底子：所有關卡全部開放，可以直接挑戰進階知識。仍建議用基本區的魔王戰檢查自己。' }
+];
+function placementTier(sec) {
+  const tot = sec.math + sec.semi + sec.pv;
+  if (tot >= 9 && sec.semi >= 3 && sec.pv >= 3) return 2;
+  if (tot >= 6 && sec.semi >= 3) return 1;
+  return 0;
+}
+function viewPlacement(V) {
+  const qs = PLACEMENT.slice();
+  let i = -1; const ans = [];
+  const secName = { math: '數理基礎', semi: '半導體元件', pv: '太陽電池' };
+  const intro = () => {
+    V.innerHTML = `<div class="card" style="text-align:center"><div class="cardart">🎓</div><h2 style="margin:4px 0">入門資質鑑定</h2>
+      <p>開始修練前，先用 ${qs.length} 題小測驗看看你目前的程度（約 5–8 分鐘），系統會依結果幫你<b>分配修練等級並開放對應的關卡</b>。</p>
+      <p class="muted" style="font-size:14px">題目分三類：數理基礎、半導體元件、太陽電池。不會的題目選「我不知道」就好，不會扣分，誠實作答分級才準。</p>
+      <button class="btn" id="pgo">開始鑑定 ▶</button>
+      ${S.placement ? '' : '<div style="margin-top:12px"><button class="btn ghost small" id="pskip">先跳過，直接從新手村開始</button></div>'}</div>`;
+    $('#pgo', V).onclick = () => { i = 0; draw(); };
+    const sk = $('#pskip', V); if (sk) sk.onclick = () => { S.placementSkipped = 1; save(); Rec.send('placement', { score: 'skip' }); go('map'); };
+  };
+  const draw = () => {
+    const q = qs[i];
+    V.innerHTML = `<div class="card"><div class="muted" style="font-size:14px">第 ${i + 1} / ${qs.length} 題　・　${secName[q.sec]}</div>
+      <div class="prog" style="margin:6px 0 12px"><i style="width:${i / qs.length * 100}%"></i></div>
+      <div class="q"><div class="qt">${q.q}</div><div class="body"></div></div></div>`;
+    const body = $('.body', V);
+    shuffle(q.opts.map((o, k) => k)).concat([-1]).forEach(k => {
+      const b = document.createElement('button'); b.className = 'opt'; b.dataset.i = k;
+      b.innerHTML = k < 0 ? '<span class="muted">🤔 我不知道</span>' : q.opts[k];
+      b.onclick = () => { ans[i] = k; i++; if (i < qs.length) { draw(); typeset(V); } else finish(); };
+      body.appendChild(b);
+    });
+    typeset(V);
+  };
+  const finish = () => {
+    const sec = { math: 0, semi: 0, pv: 0 }, cnt = { math: 0, semi: 0, pv: 0 };
+    qs.forEach((q, k) => { cnt[q.sec]++; if (ans[k] === q.a) sec[q.sec]++; });
+    const score = sec.math + sec.semi + sec.pv, newTier = placementTier(sec);
+    const prev = S.placement, tier = Math.max(newTier, prev ? prev.tier : 0);
+    S.placement = { tier, score, total: qs.length, sec, t: Date.now() }; save();
+    Rec.send('placement', { score: `${score}/${qs.length}`, level: tier, comment: `數理${sec.math}/${cnt.math} 半導體${sec.semi}/${cnt.semi} 太陽電池${sec.pv}/${cnt.pv}` });
+    if (!prev) addXP(score * 5, '入門鑑定');
+    const T = TIERS[tier];
+    V.innerHTML = `<div class="card" style="text-align:center"><div class="cardart">${T.e}</div><h2 style="margin:4px 0">鑑定結果：${T.n}</h2>
+      <p>答對 <b>${score}</b> / ${qs.length}　（數理 ${sec.math}/${cnt.math}・半導體 ${sec.semi}/${cnt.semi}・太陽電池 ${sec.pv}/${cnt.pv}）</p>
+      <p style="text-align:left">${T.d}</p>${prev && newTier < prev.tier ? '<p class="muted">（這次結果比上次低，已保留你之前開放的關卡。）</p>' : ''}
+      <button class="btn" onclick="go('map')">前往修練地圖 ▶</button></div>
+      <div class="card"><h3 style="margin-top:0">📝 解答與說明</h3>${qs.map((q, k) => `<div class="q"><div class="qt">${k + 1}. ${q.q}</div>
+        <div>${ans[k] === q.a ? '⭕' : '❌'} 正解：${q.opts[q.a]}${ans[k] !== q.a ? `<span class="muted">（你選：${ans[k] < 0 ? '我不知道' : q.opts[ans[k]]}）</span>` : ''}</div>
+        <div class="muted" style="font-size:14px">${q.why}</div></div>`).join('')}</div>`;
+    typeset(V);
+  };
+  intro();
+}
 
 /* ---------------- me ---------------- */
 function viewMe(V) {
   const L = levelOf(S.xp);
   const tt = Object.values(S.time).reduce((a, b) => a + b, 0);
-  V.innerHTML = `<div class="card"><h2 style="margin:0">👤 ${esc(S.name)}（${esc(S.sid)}）</h2>
+  V.innerHTML = `<div class="card"><h2 style="margin:0">👤 ${esc(S.nick || '')}　<span class="muted" style="font-size:15px">${esc(S.name)}（${esc(S.sid)}）</span></h2>
+    <div class="muted" style="font-size:13px">真實姓名只有老師看得到；排行榜上顯示暱稱。${S.placement ? '　入門鑑定：' + TIERS[S.placement.tier].e + ' ' + TIERS[S.placement.tier].n + '（' + S.placement.score + '/' + S.placement.total + '）' : ''}</div>
     <p>Lv${L.lv}「${L.title}」・${S.xp} XP・累計修練 ${Math.round(tt / 60)} 分鐘・連續 ${streak()} 天</p>
     <table class="data"><tr><th>章節</th><th>觀念</th><th>計算</th><th>魔王</th><th>時間</th><th>平均自評</th></tr>
     ${CH.map(c => { const s = chStats(c); const rs = c.concepts.map(k => S.rating[k.id] && S.rating[k.id].r).filter(Boolean);
-      return `<tr><td>${c.id === 0 ? '新手村' : c.bonus ? '番外' : c.id}. ${esc(c.title)}</td><td>${s.d}/${s.n}</td><td>${s.pd}/${s.pn}</td><td>${c.boss ? (chapterDone(c) ? '✅' : '—') : ''}</td><td>${Math.round((S.time[c.id] || 0) / 60)} 分</td><td>${rs.length ? (rs.reduce((a, b) => a + b, 0) / rs.length).toFixed(1) + '★' : '—'}</td></tr>`; }).join('')}
+      return `<tr><td>${c.label}｜${esc(c.title)}</td><td>${s.d}/${s.n}</td><td>${s.pd}/${s.pn}</td><td>${c.boss ? (chapterDone(c) ? '✅' : '—') : ''}</td><td>${Math.round((S.time[c.id] || 0) / 60)} 分</td><td>${rs.length ? (rs.reduce((a, b) => a + b, 0) / rs.length).toFixed(1) + '★' : '—'}</td></tr>`; }).join('')}
     </table></div>
     <div class="card"><h3 style="margin-top:0">💬 給老師的回饋</h3><textarea id="fbk" style="width:100%;min-height:80px;border:1px solid var(--line);border-radius:10px;padding:8px" placeholder="哪一章最難？哪裡講不清楚？想多一點什麼？"></textarea>
     <button class="btn" id="fbs">送出回饋</button></div>
     <div class="card"><h3 style="margin-top:0">⚙️ 其他</h3>
+      <button class="btn ghost" id="nickb">✏️ 修改暱稱</button>
+      <button class="btn ghost" id="placeb">🎓 重新進行入門鑑定</button>
       <button class="btn ghost" id="sync">☁️ 從雲端取回進度（換裝置時用）</button>
       <button class="btn ghost" id="lo">🚪 登出（換人使用）</button>
       <button class="btn ghost" id="forget">🎫 登出並清除本機的入場券</button>
@@ -826,12 +924,14 @@ function viewMe(V) {
   $('#fbs', V).onclick = () => { const t = $('#fbk', V).value.trim(); if (!t) return; Rec.send('feedback', { comment: t }); $('#fbk', V).value = ''; toast('謝謝你的回饋！'); addXP(5, '提供回饋'); };
   $('#lo', V).onclick = () => { leaveChapter(); Rec.flush(true); LS.del(KEYP + 'who'); location.hash = ''; location.reload(); };
   $('#forget', V).onclick = () => { leaveChapter(); Rec.flush(true); LS.del(KEYP + 'who'); LS.del(KEYP + 'ticket'); location.hash = ''; location.reload(); };
+  $('#nickb', V).onclick = () => { const n = prompt('新的暱稱（最多 12 字，大家看得到）', S.nick || ''); if (n && n.trim()) { S.nick = n.trim().slice(0, 12); LS.set(KEYP + 'who', { sid: S.sid, name: S.name, nick: S.nick }); save(); renderHUD(); Rec.send('nick', { comment: S.nick }); go('me'); } };
+  $('#placeb', V).onclick = () => go('placement');
   $('#sync', V).onclick = async () => { const ok = await pullProgress(true); toast(ok ? '已取回雲端進度' : '雲端沒有更新的進度'); go('me'); };
 }
 async function pullProgress(force) {
   const r = await apiGet({ action: 'progress', sid: S.sid });
   if (r && r.data) {
-    try { const remote = JSON.parse(r.data); if (force || (remote.updated || 0) > (S.updated || 0)) { S = Object.assign(blankState(S.sid, S.name), remote, { name: S.name }); save(false); renderHUD(); return true; } } catch (e) {}
+    try { const remote = JSON.parse(r.data); if (force || (remote.updated || 0) > (S.updated || 0)) { S = Object.assign(blankState(S.sid, S.name), remote, { name: S.name, nick: S.nick || remote.nick }); save(false); renderHUD(); return true; } } catch (e) {}
   }
   return false;
 }
@@ -1087,9 +1187,10 @@ async function tryTicket(pass, silent) {
     return false;
   }
 }
-async function doLogin(sid, name, silent) {
-  sid = sid.trim().toUpperCase(); name = name.trim();
-  if (!sid || !name) { $('#errLogin').textContent = '學號和姓名都要填喔'; return; }
+async function doLogin(sid, name, nick, silent) {
+  sid = sid.trim().toUpperCase(); name = name.trim(); nick = (nick || '').trim().slice(0, 12);
+  if (!sid || !name) { $('#errLogin').textContent = '學號和真實姓名都要填喔'; return; }
+  if (!nick && !silent) { $('#errLogin').textContent = '請取一個暱稱（會顯示在排行榜上）'; return; }
   if (CONFIG.API && CONFIG.ROSTER && !silent) {
     $('#errLogin').textContent = '核對實驗室名單中…';
     const r = await apiGet({ action: 'check', sid, name });
@@ -1097,8 +1198,8 @@ async function doLogin(sid, name, silent) {
     if (!r.ok) { $('#errLogin').textContent = '❌ 名單上找不到這個學號＋姓名，請聯絡指導老師加入名單。'; Rec.q.push({ type: 'denied', sid, name, ts: new Date().toISOString(), app: 'PVQuest' }); Rec.flush(); return; }
   }
   S = LS.get(KEYP + 'st_' + sid, null) || blankState(sid, name);
-  S.name = name;
-  LS.set(KEYP + 'who', { sid, name });
+  S.name = name; if (nick) S.nick = nick;
+  LS.set(KEYP + 'who', { sid, name, nick: S.nick });
   $('#gate').classList.add('hidden'); $('#app').classList.remove('hidden');
   Rec.init();
   const today = nowDay(), newDay = !S.days.includes(today);
@@ -1110,7 +1211,8 @@ async function doLogin(sid, name, silent) {
   checkBadges();
   const h = location.hash;
   const m = h.match(/ch=(\d+)/);
-  if (m && CH.find(c => c.id === +m[1]) && unlocked(CH.find(c => c.id === +m[1]))) go('chapter', +m[1]);
+  if (!S.placement && !S.placementSkipped) go('placement');
+  else if (m && CH.find(c => c.id === +m[1]) && unlocked(CH.find(c => c.id === +m[1]))) go('chapter', +m[1]);
   else if (/#(tools|formulas|glossary|wrong|hall|me)\b/.test(h)) go(h.slice(1).split(/[&?]/)[0]);
   else go('map');
 }
@@ -1122,11 +1224,11 @@ $('#btnTicket').onclick = async () => {
   if (await tryTicket(p)) showLogin();
 };
 $('#pass').addEventListener('keydown', e => { if (e.key === 'Enter') $('#btnTicket').click(); });
-$('#btnLogin').onclick = () => doLogin($('#sid').value, $('#sname').value);
-$('#sname').addEventListener('keydown', e => { if (e.key === 'Enter') $('#btnLogin').click(); });
+$('#btnLogin').onclick = () => doLogin($('#sid').value, $('#sname').value, $('#snick').value);
+$('#snick').addEventListener('keydown', e => { if (e.key === 'Enter') $('#btnLogin').click(); });
 function showLogin() {
   $('#stepTicket').classList.add('hidden'); $('#stepLogin').classList.remove('hidden');
-  const w = LS.get(KEYP + 'who', null); if (w) { $('#sid').value = w.sid; $('#sname').value = w.name; }
+  const w = LS.get(KEYP + 'who', null); if (w) { $('#sid').value = w.sid; $('#sname').value = w.name; $('#snick').value = w.nick || ''; }
   $('#sid').focus();
 }
 window.addEventListener('beforeunload', () => { if (S) { leaveChapter(); Rec.flush(true); } });
@@ -1137,7 +1239,7 @@ window.addEventListener('beforeunload', () => { if (S) { leaveChapter(); Rec.flu
   if (m) history.replaceState(null, '', location.pathname + location.search);
   if (pass && await tryTicket(pass, true)) {
     const w = LS.get(KEYP + 'who', null);
-    if (w && !m) return doLogin(w.sid, w.name, true);
+    if (w && w.nick && !m) return doLogin(w.sid, w.name, w.nick, true);
     showLogin();
   } else if (pass) { LS.del(KEYP + 'ticket'); $('#errTicket').textContent = '入場券已失效（老師可能更換了通行碼），請輸入新的通行碼。'; }
 })();

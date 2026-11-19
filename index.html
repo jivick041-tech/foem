@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>太陽電池修練場 · PV Quest</title>
+<link rel="stylesheet" href="katex/katex.min.css">
+<script defer src="katex/katex.min.js"></script>
+<script defer src="katex/contrib/auto-render.min.js"></script>
+<style>
+:root{
+  --bg:#0f1729; --bg2:#16213a; --card:#fffdf8; --ink:#1d2433; --mute:#6b7280;
+  --sun:#f59e0b; --sun2:#fbbf24; --red:#ef4444; --green:#16a34a; --blue:#2563eb; --violet:#7c3aed;
+  --line:#e7e2d6; --soft:#fff6e3; --r:14px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:-apple-system,"PingFang TC","Microsoft JhengHei","Noto Sans TC",system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.7;font-size:16px}
+a{color:var(--blue)}
+button{font:inherit;cursor:pointer}
+input,select,textarea{font:inherit}
+.hidden{display:none!important}
+
+/* ---------- gate ---------- */
+#gate{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;
+  background:radial-gradient(circle at 50% -10%,#fbbf24 0,#f59e0b 12%,#7c2d12 30%,#0f1729 62%)}
+.gatebox{background:var(--card);border-radius:20px;max-width:420px;width:100%;padding:28px 26px;box-shadow:0 20px 60px rgba(0,0,0,.45)}
+.gatebox h1{margin:0 0 4px;font-size:24px}
+.gatebox .sub{color:var(--mute);font-size:14px;margin-bottom:18px}
+.field{margin:12px 0}
+.field label{display:block;font-size:14px;font-weight:600;margin-bottom:4px}
+.field input{width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;background:#fff}
+.field input:focus{outline:none;border-color:var(--sun)}
+.btn{background:var(--sun);color:#1d1300;border:0;border-radius:10px;padding:10px 16px;font-weight:700}
+.btn:hover{filter:brightness(1.05)}
+.btn.wide{width:100%;padding:12px}
+.btn.ghost{background:transparent;border:1.5px solid var(--line);color:var(--ink);font-weight:600}
+.btn.small{padding:5px 10px;font-size:14px}
+.btn.blue{background:var(--blue);color:#fff}
+.btn.green{background:var(--green);color:#fff}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.err{color:var(--red);font-size:14px;min-height:20px;margin-top:6px}
+.ticket{border:2px dashed var(--sun);border-radius:14px;padding:12px 14px;background:var(--soft);font-size:14px;margin-bottom:14px}
+
+/* ---------- app shell ---------- */
+#app{min-height:100vh}
+header.top{background:var(--bg2);color:#fff;padding:8px 14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;box-shadow:0 2px 10px rgba(0,0,0,.3)}
+.brand{font-weight:800;font-size:18px;white-space:nowrap}
+.brand span{color:var(--sun2)}
+.player{display:flex;align-items:center;gap:10px;margin-left:auto;font-size:14px}
+.lv{background:var(--sun);color:#1d1300;border-radius:999px;padding:2px 10px;font-weight:800}
+.xpbar{width:130px;height:9px;background:#334155;border-radius:9px;overflow:hidden}
+.xpbar i{display:block;height:100%;background:linear-gradient(90deg,var(--sun2),var(--sun));width:0}
+nav.tabs{display:flex;gap:4px;background:var(--bg2);padding:0 10px 8px;overflow-x:auto}
+.stick{position:sticky;top:0;z-index:20;box-shadow:0 2px 10px rgba(0,0,0,.3)}
+nav.tabs button{background:transparent;color:#cbd5e1;border:0;padding:7px 12px;border-radius:9px;white-space:nowrap;font-weight:600}
+nav.tabs button.on{background:#273553;color:#fff}
+main{max-width:980px;margin:0 auto;padding:18px 14px 80px}
+.card{background:var(--card);border-radius:var(--r);padding:18px;margin:14px 0;box-shadow:0 4px 18px rgba(0,0,0,.18)}
+h2,h3,h4{line-height:1.35}
+.muted{color:var(--mute)}
+.pill{display:inline-block;border-radius:999px;padding:1px 9px;font-size:12px;font-weight:700;background:#eef2ff;color:#3730a3;margin-right:4px}
+.pill.sun{background:#fef3c7;color:#92400e}
+.pill.green{background:#dcfce7;color:#166534}
+.pill.red{background:#fee2e2;color:#991b1b}
+.pill.gray{background:#f1f5f9;color:#475569}
+
+/* ---------- map ---------- */
+.mapgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
+.stage{background:var(--card);border-radius:var(--r);padding:16px;position:relative;cursor:pointer;transition:transform .12s;border:2px solid transparent}
+.stage:hover{transform:translateY(-2px);border-color:var(--sun)}
+.stage.locked{opacity:.55;filter:grayscale(.7)}
+.stage .no{font-size:13px;color:var(--mute);font-weight:700}
+.stage .ic{font-size:30px;float:right}
+.stage h3{margin:4px 0 6px;font-size:18px}
+.prog{height:8px;background:#eee;border-radius:8px;overflow:hidden;margin-top:8px}
+.prog i{display:block;height:100%;background:var(--green)}
+.crown{position:absolute;top:-10px;left:-8px;font-size:24px}
+.welcome{color:#e2e8f0}
+.welcome h2{color:#fff;margin:6px 0}
+
+/* ---------- chapter ---------- */
+.chhead{background:linear-gradient(135deg,#1e293b,#334155);color:#fff;border-radius:var(--r);padding:20px;margin-top:6px}
+.chhead h2{margin:4px 0}
+.chhead .src{font-size:13px;color:#cbd5e1}
+.goals{margin:8px 0 0;padding-left:20px}
+.path{display:flex;gap:6px;flex-wrap:wrap;margin:14px 0}
+.node{border:2px solid #475569;color:#e2e8f0;background:#1e293b;border-radius:999px;padding:4px 12px;font-size:13px;cursor:pointer}
+.node.done{background:var(--green);border-color:var(--green);color:#fff}
+.node.cur{border-color:var(--sun2)}
+.concept h3{margin:0 0 4px}
+.sec{border-left:4px solid var(--line);padding:4px 0 4px 14px;margin:14px 0}
+.sec>.h{font-weight:800;margin-bottom:4px;font-size:15px}
+.sec.plain{border-color:var(--sun)} .sec.plain>.h{color:#b45309}
+.sec.pre{border-color:var(--violet)} .sec.pre>.h{color:var(--violet)}
+.sec.deep{border-color:var(--blue)} .sec.deep>.h{color:var(--blue)}
+.sec.form{border-color:#0891b2} .sec.form>.h{color:#0e7490}
+.sec.ext{border-color:#db2777} .sec.ext>.h{color:#be185d}
+.sec.quiz{border-color:var(--green)} .sec.quiz>.h{color:var(--green)}
+.prebox{background:#f5f3ff;border-radius:10px;padding:8px 12px;margin:6px 0}
+.prebox b{color:#5b21b6}
+details{margin:6px 0}
+details>summary{cursor:pointer;font-weight:700}
+.fcard{background:#ecfeff;border:1px solid #a5f3fc;border-radius:12px;padding:10px 14px;margin:10px 0}
+.fcard .fn{font-weight:800;color:#0e7490}
+.fcard table{border-collapse:collapse;width:100%;font-size:14px;margin-top:6px}
+.fcard td{border-top:1px solid #cffafe;padding:4px 6px;vertical-align:top}
+.fcard td:first-child{white-space:nowrap;width:1%}
+.analogy{background:var(--soft);border-radius:10px;padding:8px 12px;margin:8px 0}
+.warn{background:#fef2f2;border-radius:10px;padding:8px 12px;margin:8px 0}
+.srcline{font-size:12px;color:var(--mute);margin-top:10px}
+table.data{border-collapse:collapse;font-size:14px;margin:8px 0}
+table.data td,table.data th{border:1px solid var(--line);padding:4px 8px}
+table.data th{background:#f8f5ec}
+
+/* quiz */
+.q{background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px 14px;margin:10px 0}
+.q .qt{font-weight:600;margin-bottom:6px}
+.opt{display:block;width:100%;text-align:left;background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;padding:8px 12px;margin:6px 0}
+.opt:hover{border-color:var(--sun)}
+.opt.right{border-color:var(--green);background:#f0fdf4}
+.opt.wrong{border-color:var(--red);background:#fef2f2}
+.fb{margin-top:6px;font-size:15px;border-radius:10px;padding:8px 12px}
+.fb.ok{background:#f0fdf4;color:#14532d}
+.fb.no{background:#fef2f2;color:#7f1d1d}
+.numin{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.numin input{width:150px;padding:7px 10px;border:1.5px solid #cbd5e1;border-radius:9px}
+.stars button{background:none;border:0;font-size:24px;padding:0 2px;color:#d1d5db}
+.stars button.on{color:var(--sun)}
+.rate{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#fffbeb;border-radius:10px;padding:8px 12px;margin-top:12px}
+.rate textarea{width:100%;min-height:44px;border:1px solid var(--line);border-radius:8px;padding:6px}
+
+/* problems */
+.prob .lvl{color:var(--sun)}
+.step{background:#f8fafc;border-radius:10px;padding:8px 12px;margin:6px 0;border-left:4px solid #94a3b8}
+.step .sh{font-weight:700;color:#334155}
+
+/* boss */
+.boss{background:linear-gradient(160deg,#3b0764,#1e1b4b);color:#fff;border-radius:var(--r);padding:18px}
+.boss .q{background:#fff;color:var(--ink)}
+.hp{height:16px;background:#4c1d95;border-radius:9px;overflow:hidden;margin:6px 0 10px}
+.hp i{display:block;height:100%;background:linear-gradient(90deg,#f43f5e,#fb7185);transition:width .4s}
+.hearts{font-size:22px;letter-spacing:2px}
+.bossart{font-size:64px;text-align:center;line-height:1.1}
+.shake{animation:shake .35s}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+
+/* toast & modal */
+#toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:99;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none}
+.t{background:#111827;color:#fff;border-radius:12px;padding:9px 16px;box-shadow:0 8px 24px rgba(0,0,0,.35);font-weight:600;animation:pop .25s}
+.t.xp{background:linear-gradient(90deg,#b45309,#f59e0b)}
+@keyframes pop{from{transform:scale(.8);opacity:0}to{transform:scale(1);opacity:1}}
+#modal{position:fixed;inset:0;background:rgba(2,6,23,.7);z-index:90;display:flex;align-items:center;justify-content:center;padding:16px}
+#modal .box{background:var(--card);border-radius:18px;max-width:460px;width:100%;padding:22px;text-align:center}
+.cardart{font-size:56px}
+
+/* tools */
+.tool canvas{width:100%;height:300px;background:#fff;border:1px solid var(--line);border-radius:10px}
+.ctl{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px 16px;margin:10px 0}
+.ctl label{font-size:14px;display:block}
+.ctl input[type=range]{width:100%}
+.ctl b{color:var(--blue)}
+.out{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+.out div{background:#f1f5f9;border-radius:10px;padding:6px 12px;font-size:14px}
+.out b{font-size:17px}
+
+/* lists */
+.badges{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.badge{border-radius:12px;padding:10px;text-align:center;background:#f8fafc;border:1px solid #e2e8f0;font-size:13px}
+.badge .e{font-size:30px}
+.badge.off{opacity:.35;filter:grayscale(1)}
+.board td,.board th{padding:6px 10px;border-bottom:1px solid var(--line);text-align:left}
+.board{border-collapse:collapse;width:100%}
+.me{background:#fef3c7}
+.search{width:100%;padding:9px 12px;border:1.5px solid var(--line);border-radius:10px;margin-bottom:10px}
+@media (max-width:600px){ header.top{padding:6px 10px;gap:6px} .player{gap:6px;font-size:13px} #pTitle{display:none} .xpbar{width:70px} .brand{font-size:16px} main{padding:10px 8px 80px} .card{padding:14px} }
+</style>
+</head>
+<body>
+
+<!-- ===================== 入場門票 ===================== -->
+<div id="gate">
+  <div class="gatebox">
+    <div style="font-size:44px">☀️🔑</div>
+    <h1>太陽電池修練場</h1>
+    <div class="sub">PV Quest · 實驗室內部學習資源（僅限本實驗室成員）</div>
+
+    <div id="stepTicket">
+      <div class="ticket">🎫 <b>第一步：出示入場券</b><br>請輸入實驗室通行碼，或直接掃描老師發的 QR code 進入。沒有通行碼就打不開內容（內容已加密）。</div>
+      <div class="field"><label for="pass">實驗室通行碼</label><input id="pass" type="password" autocomplete="off" placeholder="向指導老師索取"></div>
+      <button class="btn wide" id="btnTicket">驗證入場券</button>
+      <div class="err" id="errTicket"></div>
+    </div>
+
+    <div id="stepLogin" class="hidden">
+      <div class="ticket">✅ 入場券有效！<br><b>第二步：登錄修練者身分</b>（用來保存進度與學習紀錄）</div>
+      <div class="field"><label for="sid">學號</label><input id="sid" autocomplete="off" placeholder="例如 M11328001"></div>
+      <div class="field"><label for="sname">姓名</label><input id="sname" autocomplete="off" placeholder="真實姓名"></div>
+      <button class="btn wide" id="btnLogin">開始修練 ▶</button>
+      <div class="err" id="errLogin"></div>
+      <div class="muted" style="font-size:12px;margin-top:8px">你的作答、花費時間與自評會傳給指導老師，用來調整教學。</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== 主程式 ===================== -->
+<div id="app" class="hidden">
+  <div class="stick">
+  <header class="top">
+    <div class="brand">☀️ 太陽電池<span>修練場</span></div>
+    <div class="player">
+      <span id="pName"></span>
+      <span class="lv" id="pLv">Lv1</span>
+      <span id="pTitle" class="muted" style="color:#cbd5e1"></span>
+      <div class="xpbar" title="經驗值"><i id="pXp"></i></div>
+      <span id="pXpTxt" style="font-size:12px;color:#cbd5e1"></span>
+    </div>
+  </header>
+  <nav class="tabs" id="tabs">
+    <button data-v="map" class="on">🗺️ 修練地圖</button>
+    <button data-v="tools">🧪 模擬實驗室</button>
+    <button data-v="formulas">📒 公式卡</button>
+    <button data-v="glossary">🔤 名詞小辭典</button>
+    <button data-v="wrong">❌ 錯題本</button>
+    <button data-v="hall">🏆 成就與排行</button>
+    <button data-v="me">👤 我的</button>
+  </nav>
+  </div>
+  <main id="view"></main>
+</div>
+
+<div id="toast"></div>
+<div id="modal" class="hidden"><div class="box" id="modalBox"></div></div>
+
+<script src="config.js"></script>
+<script src="content.enc.js"></script>
+<script>
+/* 設定在 config.js（老師可直接在 GitHub 網頁上編輯）；加密內容在 content.enc.js */
+const CONFIG = Object.assign({ API: '', ROSTER: false, FREE_ROAM: false, BOSS_REQ: 0.6 }, window.PVQ_CONFIG || {});
+const PAYLOAD = window.PVQ_PAYLOAD || {};
+</script>
+<script>
+"use strict";
+/* ============================================================
+   太陽電池修練場 engine
+   ============================================================ */
+const CH = [];            // chapters (filled after decrypt)
+const GLOSS = [];         // glossary entries
+const CARDS = [];         // collectible scientist cards
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const LS = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
+  del(k) { try { localStorage.removeItem(k); } catch (e) {} }
+};
+const KEYP = 'pvq_';
+
+/* ---------------- crypto: decrypt content with lab passcode ---------------- */
+const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+async function decryptPayload(pass) {
+  const enc = new TextEncoder();
+  const base = await crypto.subtle.importKey('raw', enc.encode(pass.normalize('NFKC').trim()), 'PBKDF2', false, ['deriveKey']);
+  const key = await crypto.subtle.deriveKey({ name: 'PBKDF2', salt: b64(PAYLOAD.salt), iterations: PAYLOAD.iter, hash: 'SHA-256' },
+    base, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
+  const buf = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b64(PAYLOAD.iv) }, key, b64(PAYLOAD.ct));
+  return new TextDecoder().decode(buf);
+}
+function loadContent(src) {
+  // content files call CH.push / GLOSS.push / CARDS.push
+  new Function('CH', 'GLOSS', 'CARDS', src)(CH, GLOSS, CARDS);
+  CH.sort((a, b) => a.id - b.id);
+}
+
+/* ---------------- records to Google Sheet ---------------- */
+const Rec = {
+  q: [],
+  init() { this.q = LS.get(KEYP + 'outbox', []); setInterval(() => this.flush(), 15000); },
+  send(type, data) {
+    if (!CONFIG.API) return;
+    this.q.push(Object.assign({ type, sid: S.sid, name: S.name, ts: new Date().toISOString(), app: 'PVQuest' }, data));
+    LS.set(KEYP + 'outbox', this.q.slice(-300));
+    clearTimeout(this._t); this._t = setTimeout(() => this.flush(), 1500);
+  },
+  async flush(beacon) {
+    if (!CONFIG.API || !this.q.length) return;
+    const batch = this.q.splice(0, 40);
+    LS.set(KEYP + 'outbox', this.q);
+    const body = JSON.stringify({ action: 'log', rows: batch });
+    try {
+      if (beacon && navigator.sendBeacon) { navigator.sendBeacon(CONFIG.API, new Blob([body], { type: 'text/plain' })); return; }
+      await fetch(CONFIG.API, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' }, body });
+    } catch (e) { this.q = batch.concat(this.q); LS.set(KEYP + 'outbox', this.q); }
+  }
+};
+async function apiGet(params) {
+  if (!CONFIG.API) return null;
+  const u = CONFIG.API + '?' + new URLSearchParams(params).toString();
+  try { const r = await fetch(u); return await r.json(); } catch (e) { return null; }
+}
+
+/* ---------------- player state ---------------- */
+let S = null;  // state of current student
+function blankState(sid, name) {
+  return { sid, name, xp: 0, quiz: {}, concept: {}, rating: {}, prob: {}, boss: {}, badges: {}, cards: [], wrong: {},
+    time: {}, days: [], tools: {}, created: Date.now(), updated: Date.now() };
+}
+function save(sync = true) {
+  S.updated = Date.now();
+  LS.set(KEYP + 'st_' + S.sid, S);
+  if (sync && CONFIG.API) { clearTimeout(save._t); save._t = setTimeout(() => {
+    Rec.send('progress', { xp: S.xp, level: levelOf(S.xp).lv, data: JSON.stringify(S) }); }, 4000); }
+}
+const LEVELS = [
+  [0, '光子見習生'], [60, '能帶探路者'], [150, '載子學徒'], [280, '費米能階觀測員'], [450, '擴散長度測量師'],
+  [650, 'p-n 結守門人'], [900, '量子效率鑑定師'], [1200, '填充因子調校師'], [1550, '陷光術士'],
+  [1950, '異質接面工匠'], [2400, '疊層電池建築師'], [2900, '細緻平衡賢者'], [3500, 'Shockley–Queisser 守護者'],
+  [4200, '光伏大師'], [5000, '太陽之子']
+];
+function levelOf(xp) {
+  let i = 0; while (i + 1 < LEVELS.length && xp >= LEVELS[i + 1][0]) i++;
+  const cur = LEVELS[i][0], nxt = LEVELS[i + 1] ? LEVELS[i + 1][0] : cur + 1000;
+  return { lv: i + 1, title: LEVELS[i][1], cur, nxt, frac: Math.min(1, (xp - cur) / (nxt - cur)) };
+}
+function addXP(n, why) {
+  if (!n) return;
+  const before = levelOf(S.xp).lv;
+  S.xp = Math.max(0, S.xp + n);
+  toast(`+${n} XP ${why ? '・' + why : ''}`, 'xp');
+  const L = levelOf(S.xp);
+  if (L.lv > before) {
+    modal(`<div class="cardart">🎉</div><h2>升級！Lv${L.lv}</h2><p>你獲得新稱號：<b>${L.title}</b></p><button class="btn" onclick="closeModal()">繼續修練</button>`);
+    Rec.send('levelup', { level: L.lv, xp: S.xp });
+  }
+  save(); renderHUD(); checkBadges();
+}
+function renderHUD() {
+  const L = levelOf(S.xp);
+  $('#pName').textContent = S.name;
+  $('#pLv').textContent = 'Lv' + L.lv;
+  $('#pTitle').textContent = L.title;
+  $('#pXp').style.width = (L.frac * 100) + '%';
+  $('#pXpTxt').textContent = `${S.xp} / ${L.nxt} XP`;
+}
+
+/* ---------------- UI helpers ---------------- */
+function toast(msg, cls = '') {
+  const d = document.createElement('div'); d.className = 't ' + cls; d.textContent = msg;
+  $('#toast').appendChild(d); setTimeout(() => d.remove(), 2600);
+}
+function modal(html) { $('#modalBox').innerHTML = html; $('#modal').classList.remove('hidden'); typeset($('#modalBox')); }
+function closeModal() { $('#modal').classList.add('hidden'); }
+function typeset(el) {
+  if (window.renderMathInElement) {
+    try { renderMathInElement(el, { delimiters: [{ left: '$$', right: '$$', display: true }, { left: '$', right: '$', display: false }], throwOnError: false }); } catch (e) {}
+  } else { setTimeout(() => typeset(el), 400); }
+}
+function nowDay() { const d = new Date(); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }
+
+/* ---------------- badges ---------------- */
+const BADGES = [
+  { id: 'first', e: '🎫', n: '入場成功', d: '第一次登入修練場', f: () => true },
+  { id: 'node1', e: '🌱', n: '第一個節點', d: '通過第一個觀念小測驗', f: () => Object.keys(S.concept).length >= 1 },
+  { id: 'node20', e: '🌿', n: '觀念收集者', d: '通過 20 個觀念節點', f: () => Object.keys(S.concept).length >= 20 },
+  { id: 'node50', e: '🌳', n: '觀念森林', d: '通過 50 個觀念節點', f: () => Object.keys(S.concept).length >= 50 },
+  { id: 'boss1', e: '⚔️', n: '初次討伐', d: '擊敗任一章魔王', f: () => Object.keys(S.boss).some(k => S.boss[k].win) },
+  { id: 'boss5', e: '🛡️', n: '魔王獵人', d: '擊敗 5 個魔王', f: () => Object.values(S.boss).filter(b => b.win).length >= 5 },
+  { id: 'bossall', e: '👑', n: '全境制霸', d: '擊敗所有章節魔王', f: () => CH.every(c => !c.boss || (S.boss[c.id] && S.boss[c.id].win)) },
+  { id: 'nohint', e: '🧠', n: '裸考達人', d: '不看任何提示解出一題計算題', f: () => Object.values(S.prob).some(p => p.ok && !p.hints) },
+  { id: 'prob10', e: '🧮', n: '計算機器', d: '解出 10 題計算題', f: () => Object.values(S.prob).filter(p => p.ok).length >= 10 },
+  { id: 'streak3', e: '🔥', n: '三日不輟', d: '連續 3 天登入修練', f: () => streak() >= 3 },
+  { id: 'streak7', e: '🌞', n: '一週日照', d: '連續 7 天登入修練', f: () => streak() >= 7 },
+  { id: 'tools', e: '🧪', n: '實驗室常客', d: '用過所有模擬工具', f: () => TOOLS.every(t => S.tools[t.id]) },
+  { id: 'rate10', e: '📝', n: '誠實自評', d: '完成 10 次觀念自評', f: () => Object.keys(S.rating).length >= 10 },
+  { id: 'cleanwrong', e: '🧹', n: '錯題清零', d: '曾經錯過的題目全部重新答對', f: () => Object.keys(S.wrongEver || {}).length >= 5 && Object.keys(S.wrong).length === 0 },
+  { id: 'cards6', e: '🃏', n: '科學家收藏家', d: '收集 6 張科學家卡', f: () => (S.cards || []).length >= 6 },
+  { id: 'cardsall', e: '🏛️', n: '名人堂', d: '收集全部科學家卡', f: () => CARDS.length && (S.cards || []).length >= CARDS.length },
+];
+function checkBadges() {
+  for (const b of BADGES) {
+    if (S.badges[b.id]) continue;
+    let ok = false; try { ok = b.f(); } catch (e) {}
+    if (ok) { S.badges[b.id] = Date.now(); toast(`🏅 獲得徽章：${b.e} ${b.n}`); Rec.send('badge', { item: b.id }); save(); }
+  }
+}
+function streak() {
+  const set = new Set(S.days); let n = 0; const d = new Date();
+  for (;;) { const k = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); if (set.has(k)) { n++; d.setDate(d.getDate() - 1); } else break; }
+  return n;
+}
+
+/* ---------------- unlocking ---------------- */
+function chapterDone(c) { return !c.boss || (S.boss[c.id] && S.boss[c.id].win); }
+function unlocked(c) {
+  if (CONFIG.FREE_ROAM) return true;
+  const i = CH.indexOf(c);
+  if (i <= 1) return true;             // 新手村 & 第一章永遠開放
+  if (c.free) return true;
+  return !!(chapterDone(CH[i - 1]) || (S.skip && S.skip[c.id]));
+}
+function chStats(c) {
+  const n = c.concepts.length, d = c.concepts.filter(k => S.concept[k.id]).length;
+  const pn = (c.problems || []).length, pd = (c.problems || []).filter(p => S.prob[p.id] && S.prob[p.id].ok).length;
+  return { n, d, pn, pd, frac: (d + pd + (chapterDone(c) && c.boss ? 2 : 0)) / Math.max(1, n + pn + (c.boss ? 2 : 0)) };
+}
+
+/* ---------------- router ---------------- */
+let curView = 'map', curCh = null, enterT = 0;
+function go(v, arg) {
+  leaveChapter();
+  curView = v;
+  $$('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.v === v || (v === 'chapter' && b.dataset.v === 'map')));
+  const V = $('#view'); V.innerHTML = '';
+  ({ map: viewMap, chapter: viewChapter, tools: viewTools, formulas: viewFormulas, glossary: viewGlossary, wrong: viewWrong, hall: viewHall, me: viewMe })[v](V, arg);
+  typeset(V);
+  window.scrollTo(0, 0);
+  if (v === 'chapter') { curCh = arg; enterT = Date.now(); history.replaceState(null, '', '#ch=' + arg); }
+  else history.replaceState(null, '', '#' + v);
+}
+function leaveChapter() {
+  if (curView === 'chapter' && curCh != null && enterT) {
+    const secs = Math.round((Date.now() - enterT) / 1000);
+    if (secs > 5) {
+      S.time[curCh] = (S.time[curCh] || 0) + secs; save(false);
+      Rec.send('time', { ch: curCh, secs });
+    }
+    enterT = 0;
+  }
+}
+document.addEventListener('visibilitychange', () => {
+  if (!S) return;
+  if (document.visibilityState === 'hidden') { leaveChapter(); Rec.flush(true); }
+  else if (curView === 'chapter') enterT = Date.now();
+});
+
+/* ---------------- views: map ---------------- */
+function viewMap(V) {
+  const L = levelOf(S.xp);
+  V.innerHTML = `<div class="welcome"><h2>歡迎回來，${esc(S.name)}！</h2>
+    <div>目前稱號：<b style="color:#fbbf24">${L.title}</b>　🔥 連續修練 ${streak()} 天　🃏 科學家卡 ${(S.cards||[]).length}/${CARDS.length}</div>
+    <div class="muted" style="color:#94a3b8;font-size:14px;margin-top:4px">路線：每章先讀觀念 → 過每個節點的小測驗 → 練計算題 → 挑戰魔王。擊敗魔王才會開啟下一章${CONFIG.FREE_ROAM ? '（老師已開放自由探索，所有章節都能進入）' : ''}。</div></div>
+    <div class="mapgrid" id="mg"></div>`;
+  const mg = $('#mg', V);
+  CH.forEach(c => {
+    const st = chStats(c), ok = unlocked(c), done = chapterDone(c) && c.boss;
+    const d = document.createElement('div');
+    d.className = 'stage' + (ok ? '' : ' locked');
+    d.innerHTML = `${done ? '<div class="crown">👑</div>' : ''}<div class="ic">${c.icon || '☀️'}</div>
+      <div class="no">${c.id === 0 ? '新手村' : c.bonus ? '番外篇' : '第 ' + c.id + ' 章'} ${ok ? '' : '🔒'}</div>
+      <h3>${esc(c.title)}</h3><div class="muted" style="font-size:13px">${esc(c.en || '')}</div>
+      <div style="font-size:13px;margin-top:6px">觀念 ${st.d}/${st.n}・計算 ${st.pd}/${st.pn}${c.boss ? '・魔王 ' + (done ? '✅' : '⬜') : ''}</div>
+      <div class="prog"><i style="width:${Math.round(st.frac * 100)}%"></i></div>`;
+    d.onclick = () => {
+      if (ok) return go('chapter', c.id);
+      modal(`<div class="cardart">🔒</div><h3>這一章還沒解鎖</h3><p>先擊敗前一章的魔王就能進入。<br>如果你已經學過這部分，也可以直接跳關（不影響經驗值，但會被記錄）。</p>
+        <button class="btn ghost" onclick="closeModal()">先不要</button> <button class="btn" onclick="skipTo(${c.id})">我要跳關</button>`);
+    };
+    mg.appendChild(d);
+  });
+}
+function skipTo(id) { S.skip = S.skip || {}; S.skip[id] = 1; save(); Rec.send('skip', { ch: id }); closeModal(); go('chapter', id); }
+
+/* ---------------- views: chapter ---------------- */
+function viewChapter(V, id) {
+  const c = CH.find(x => x.id === id); if (!c) return go('map');
+  V.innerHTML = `<button class="btn ghost small" style="color:#fff;border-color:#475569" onclick="go('map')">← 回地圖</button>
+  <div class="chhead"><div class="muted" style="color:#fbbf24;font-weight:700">${c.id === 0 ? '新手村' : c.bonus ? '番外篇' : '第 ' + c.id + ' 章'}</div>
+    <h2>${c.icon || ''} ${esc(c.title)}</h2><div class="src">${esc(c.en || '')}</div>
+    ${c.story ? `<p style="margin:10px 0 4px">${c.story}</p>` : ''}
+    ${c.goals ? `<div style="font-weight:700;margin-top:8px">🎯 本章學完你應該能夠：</div><ul class="goals">${c.goals.map(g => `<li>${g}</li>`).join('')}</ul>` : ''}
+    <div class="src" style="margin-top:8px">📚 對應教材：${c.src || ''}</div>
+    <div class="path" id="path"></div></div>
+  <div id="concepts"></div><div id="probs"></div><div id="bossArea"></div>`;
+  const P = $('#path', V);
+  c.concepts.forEach((k, i) => {
+    const b = document.createElement('button');
+    b.className = 'node' + (S.concept[k.id] ? ' done' : '');
+    b.textContent = (S.concept[k.id] ? '✓ ' : '') + k.id;
+    b.title = k.title; b.onclick = () => { const el = $('#cc_' + cssId(k.id)); el.open = true; el.scrollIntoView({ behavior: 'smooth' }); };
+    P.appendChild(b);
+  });
+  if (c.problems && c.problems.length) { const b = document.createElement('button'); b.className = 'node'; b.textContent = '🧮 計算'; b.onclick = () => $('#probs').scrollIntoView({ behavior: 'smooth' }); P.appendChild(b); }
+  if (c.boss) { const b = document.createElement('button'); b.className = 'node' + (chapterDone(c) ? ' done' : ''); b.textContent = '👹 魔王'; b.onclick = () => $('#bossArea').scrollIntoView({ behavior: 'smooth' }); P.appendChild(b); }
+
+  const C = $('#concepts', V);
+  c.concepts.forEach((k, i) => C.appendChild(renderConcept(c, k, i)));
+  renderProblems(c, $('#probs', V));
+  renderBossIntro(c, $('#bossArea', V));
+}
+const cssId = s => String(s).replace(/[^\w-]/g, '_');
+function renderConcept(c, k, i) {
+  const det = document.createElement('details');
+  det.className = 'card concept'; det.id = 'cc_' + cssId(k.id);
+  if (i === 0 && !S.concept[k.id]) det.open = true;
+  const sec = (cls, h, body) => body ? `<div class="sec ${cls}"><div class="h">${h}</div>${body}</div>` : '';
+  const pre = (k.prereq || []).map(p => `<div class="prebox"><b>🔑 ${p.t}</b><br>${p.d}</div>`).join('');
+  const fm = (k.formulas || []).map(f => formulaCard(f)).join('');
+  det.innerHTML = `<summary><span class="pill ${S.concept[k.id] ? 'green' : 'gray'}">${S.concept[k.id] ? '已通過' : '節點 ' + k.id}</span> ${esc(k.title)}</summary>
+    ${sec('plain', '🍼 白話說明（零基礎也看得懂）', k.plain)}
+    ${sec('pre', '🔑 先備知識：讀這個觀念前要知道的事', pre)}
+    ${sec('deep', '🔬 觀念解析', k.deep)}
+    ${sec('form', '🧾 重要公式與它的內涵', fm)}
+    ${sec('ext', '🚀 延伸與連結', k.ext)}
+    ${k.src ? `<div class="srcline">📚 ${k.src}</div>` : ''}
+    <div class="sec quiz"><div class="h">✅ 節點小測驗（全部答對即通過節點）</div><div class="qz"></div></div>
+    <div class="rate"><span>這個觀念我懂了多少？</span><span class="stars"></span>
+      <textarea placeholder="（選填）哪裡看不懂？想問老師什麼？"></textarea><button class="btn small">送出自評</button></div>`;
+  const qz = $('.qz', det);
+  (k.quiz || []).forEach((q, j) => qz.appendChild(renderQ(q, `${k.id}#${j}`, { ch: c.id, concept: k, chapter: c })));
+  // rating
+  const stars = $('.stars', det); let r = S.rating[k.id] ? S.rating[k.id].r : 0;
+  const drawStars = () => { stars.innerHTML = ''; for (let s = 1; s <= 5; s++) { const b = document.createElement('button'); b.textContent = '★'; b.className = s <= r ? 'on' : ''; b.onclick = () => { r = s; drawStars(); }; stars.appendChild(b); } };
+  drawStars();
+  const ta = $('textarea', det); if (S.rating[k.id]) ta.value = S.rating[k.id].c || '';
+  $('.rate .btn', det).onclick = () => {
+    if (!r) return toast('先點星星選擇理解程度');
+    const first = !S.rating[k.id];
+    S.rating[k.id] = { r, c: ta.value.trim(), t: Date.now() }; save();
+    Rec.send('rating', { ch: c.id, item: k.id, rating: r, comment: ta.value.trim() });
+    toast('已送出自評，謝謝！'); if (first) addXP(3, '誠實自評');
+  };
+  det.addEventListener('toggle', () => { if (det.open) typeset(det); });
+  return det;
+}
+function formulaCard(f) {
+  return `<div class="fcard"><div class="fn">📐 ${f.name || ''}</div><div>$$${f.tex}$$</div>
+    ${f.meaning ? `<div>💡 <b>它在說什麼：</b>${f.meaning}</div>` : ''}
+    ${f.symbols ? `<table>${f.symbols.map(s => `<tr><td>$${s[0]}$</td><td>${s[1]}</td><td class="muted">${s[2] || ''}</td></tr>`).join('')}</table>` : ''}
+    ${f.tip ? `<div style="margin-top:6px">🧭 <b>使用時機／注意：</b>${f.tip}</div>` : ''}</div>`;
+}
+
+/* ---------------- quiz items ---------------- */
+// q: {q, opts, a, why}  或  {type:'num', q, ans, tol (relative, default .03), unit, why}
+function checkNum(val, q) {
+  const x = parseFloat(String(val).replace(/,/g, '').replace(/[×x]\s*10\^?/i, 'e'));
+  if (!isFinite(x)) return null;
+  const tol = q.tol == null ? 0.03 : q.tol;
+  return Math.abs(x - q.ans) <= Math.abs(q.ans) * tol + (q.abstol || 0);
+}
+function renderQ(q, key, ctx) {
+  const d = document.createElement('div'); d.className = 'q'; d.dataset.key = key;
+  const st = S.quiz[key];
+  d.innerHTML = `<div class="qt">${q.q}</div><div class="body"></div><div class="fbx"></div>`;
+  const body = $('.body', d), fbx = $('.fbx', d);
+  const showFb = (ok) => {
+    fbx.innerHTML = `<div class="fb ${ok ? 'ok' : 'no'}">${ok ? '⭕ 答對了！' : '❌ 還不對，看看解析再試一次。'} ${q.why ? '<br>' + q.why : ''}</div>`;
+    typeset(fbx);
+  };
+  const onAnswer = ok => {
+    const rec = S.quiz[key] || { tries: 0, ok: false };
+    const wasOk = rec.ok;
+    rec.tries++; if (ok) rec.ok = true; S.quiz[key] = rec;
+    S.wrongEver = S.wrongEver || {};
+    if (!ok) { S.wrong[key] = { ch: ctx.ch, t: Date.now() }; S.wrongEver[key] = 1; }
+    else if (S.wrong[key]) { delete S.wrong[key]; }
+    Rec.send('quiz', { ch: ctx.ch, item: key, correct: ok ? 1 : 0, tries: rec.tries });
+    if (ok && !wasOk) addXP(rec.tries === 1 ? 10 : 4, rec.tries === 1 ? '一次答對' : '訂正成功');
+    save();
+    if (ctx.concept) checkConceptPass(ctx.chapter, ctx.concept);
+    if (ctx.onDone) ctx.onDone(ok);
+  };
+  if (q.type === 'num') {
+    body.innerHTML = `<div class="numin"><input placeholder="輸入數值"> <span>${q.unit || ''}</span><button class="btn small">送出</button></div>`;
+    const inp = $('input', body);
+    $('button', body).onclick = () => {
+      const r = checkNum(inp.value, q);
+      if (r == null) return toast('請輸入數字（可用 1.2e-3 表示 1.2×10⁻³）');
+      showFb(r); onAnswer(r);
+    };
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') $('button', body).click(); });
+  } else {
+    const order = shuffle(q.opts.map((o, i) => i));  // 打亂選項順序，避免記位置
+    order.forEach(i => {
+      const b = document.createElement('button'); b.className = 'opt'; b.innerHTML = q.opts[i]; b.dataset.i = i;
+      b.onclick = () => {
+        const ok = i === q.a;
+        $$('.opt', body).forEach(x => x.classList.remove('right', 'wrong'));
+        b.classList.add(ok ? 'right' : 'wrong');
+        showFb(ok); onAnswer(ok);
+      };
+      body.appendChild(b);
+    });
+  }
+  if (st && st.ok && !ctx.fresh) { fbx.innerHTML = '<div class="fb ok" style="opacity:.75">✓ 你之前答對過這題（可以再練一次）</div>'; }
+  return d;
+}
+function checkConceptPass(c, k) {
+  if (S.concept[k.id]) return;
+  const all = (k.quiz || []).every((q, j) => S.quiz[`${k.id}#${j}`] && S.quiz[`${k.id}#${j}`].ok);
+  if (all) {
+    S.concept[k.id] = Date.now(); save();
+    addXP(5, `通過節點 ${k.id}`);
+    Rec.send('concept', { ch: c.id, item: k.id });
+    const el = $('#cc_' + cssId(k.id)); if (el) { const p = $('summary .pill', el); p.className = 'pill green'; p.textContent = '已通過'; }
+    $$('#path .node').forEach(n => { if (n.textContent === k.id) { n.classList.add('done'); n.textContent = '✓ ' + k.id; } });
+    const ba = $('#bossArea'); if (ba && curView === 'chapter' && curCh === c.id && !$('#arena', ba)?.innerHTML) renderBossIntro(c, ba);
+  }
+}
+
+/* ---------------- calculation problems ---------------- */
+function renderProblems(c, el) {
+  if (!c.problems || !c.problems.length) return;
+  el.innerHTML = `<div class="card"><h3 style="margin:0">🧮 習題演練與計算</h3><div class="muted" style="font-size:14px">先自己算！卡住時再逐步打開提示（每打開一步，這題得到的 XP 會少一點）。答案允許約 ±3–5% 的誤差。</div></div>`;
+  c.problems.forEach(p => {
+    const d = document.createElement('div'); d.className = 'card prob';
+    const st = S.prob[p.id] || {};
+    d.innerHTML = `<div><span class="pill ${st.ok ? 'green' : 'sun'}">${st.ok ? '已解出' : p.id}</span> <b>${p.title || ''}</b> <span class="lvl">${'★'.repeat(p.lvl || 1)}</span></div>
+      <div style="margin-top:6px">${p.q}</div>
+      <div class="steps"></div>
+      <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost small hintb">💡 下一步提示 (0/${(p.steps || []).length})</button></div>
+      <div class="ans"></div>${p.src ? `<div class="srcline">📚 ${p.src}</div>` : ''}`;
+    const steps = $('.steps', d), hb = $('.hintb', d);
+    let shown = 0;
+    const showStep = () => {
+      const s = p.steps[shown]; const e = document.createElement('div'); e.className = 'step';
+      e.innerHTML = `<div class="sh">第 ${shown + 1} 步｜${s.h}</div><div>${s.c}</div>`; steps.appendChild(e); typeset(e);
+      shown++; hb.textContent = `💡 下一步提示 (${shown}/${p.steps.length})`; if (shown >= p.steps.length) hb.disabled = true;
+    };
+    hb.onclick = () => {
+      if (!p.steps || shown >= p.steps.length) return;
+      showStep();
+      const rec = S.prob[p.id] || {}; rec.hints = Math.max(rec.hints || 0, shown); S.prob[p.id] = rec; save(false);
+    };
+    if (!p.steps || !p.steps.length) hb.classList.add('hidden');
+    const A = $('.ans', d);
+    (p.parts || [{ ans: p.ans, tol: p.tol, unit: p.unit, label: p.label }]).forEach((pt, j) => {
+      if (pt.ans == null) return;
+      const w = document.createElement('div'); w.className = 'numin'; w.style.marginTop = '8px';
+      w.innerHTML = `<span>${pt.label || '你的答案'}：</span><input placeholder="數值"><span>${pt.unit || ''}</span><button class="btn small green">檢查</button><span class="r"></span>`;
+      const inp = $('input', w);
+      $('button', w).onclick = () => {
+        const ok = checkNum(inp.value, { ans: pt.ans, tol: pt.tol == null ? 0.05 : pt.tol, abstol: pt.abstol });
+        if (ok == null) return toast('請輸入數字');
+        const r = $('.r', w); r.innerHTML = ok ? '⭕ 正確！' : '❌ 再算算看';
+        const rec = S.prob[p.id] || {}; rec.parts = rec.parts || {}; rec.tries = (rec.tries || 0) + 1;
+        if (ok) rec.parts[j] = 1;
+        const nParts = (p.parts || [1]).filter(x => x.ans != null || !p.parts).length;
+        const wasOk = rec.ok;
+        rec.ok = Object.keys(rec.parts).length >= nParts;
+        rec.hints = Math.max(rec.hints || 0, shown);
+        S.prob[p.id] = rec; save();
+        Rec.send('problem', { ch: c.id, item: p.id + (p.parts ? '.' + (j + 1) : ''), correct: ok ? 1 : 0, tries: rec.tries, hints: shown });
+        if (!ok) { S.wrong['P:' + p.id] = { q: p.id + '（計算題）', ch: c.id, t: Date.now() }; S.wrongEver = S.wrongEver || {}; S.wrongEver['P:' + p.id] = 1; save(false); }
+        if (rec.ok && !wasOk) {
+          delete S.wrong['P:' + p.id];
+          const base = 15 * (p.lvl || 1), n = (p.steps || []).length || 1;
+          const gain = Math.max(5, Math.round(base * (1 - 0.6 * shown / n)));
+          addXP(gain, shown ? `解題（看了 ${shown} 步提示）` : '獨立解題！');
+          d.querySelector('.pill').className = 'pill green'; d.querySelector('.pill').textContent = '已解出';
+          if (p.after) { const e = document.createElement('div'); e.className = 'analogy'; e.innerHTML = '🧠 <b>解完想一想：</b>' + p.after; d.appendChild(e); typeset(e); }
+        }
+      };
+      inp.addEventListener('keydown', e => { if (e.key === 'Enter') $('button', w).click(); });
+      A.appendChild(w);
+    });
+    if (p.full) {
+      const det = document.createElement('details'); det.innerHTML = `<summary class="muted">📖 看完整詳解（建議算完再看）</summary><div>${p.full}</div>`;
+      det.addEventListener('toggle', () => { if (det.open) { typeset(det); const rec = S.prob[p.id] || {}; rec.hints = (p.steps || []).length || 1; S.prob[p.id] = rec; save(false); } });
+      d.appendChild(det);
+    }
+    el.appendChild(d);
+  });
+}
+
+/* ---------------- boss battle ---------------- */
+function renderBossIntro(c, el) {
+  if (!c.boss) return;
+  const B = c.boss, st = S.boss[c.id] || {};
+  const passed = c.concepts.filter(k => S.concept[k.id]).length, need = Math.ceil(c.concepts.length * (CONFIG.BOSS_REQ == null ? 0.6 : CONFIG.BOSS_REQ));
+  el.innerHTML = `<div class="boss"><div class="bossart">${B.art || '👹'}</div>
+    <h3 style="text-align:center;margin:4px 0">章節魔王：${B.name}</h3>
+    <p style="text-align:center;color:#ddd6fe">${B.intro || ''}</p>
+    <p style="text-align:center;font-size:14px;color:#c4b5fd">規則：隨機出 ${B.n || 6} 題，答對就攻擊魔王；答錯會扣你 1 顆 ❤️（共 3 顆）。魔王血量歸零即勝利，可獲得 100 XP 與一張隨機科學家卡。<br>挑戰條件：至少通過本章 ${need} 個觀念節點（目前 ${passed}）。${st.win ? '<br>✅ 你已經擊敗過牠，可以再挑戰練習。' : ''}</p>
+    <div style="text-align:center"><button class="btn" id="bossGo" ${passed < need ? 'disabled' : ''}>⚔️ 開始挑戰</button></div><div id="arena"></div></div>`;
+  $('#bossGo', el).onclick = () => startBoss(c, el);
+  typeset(el);
+}
+function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function startBoss(c, el) {
+  const B = c.boss;
+  let pool = (B.pool || []).map((q, j) => ({ q, key: `B${c.id}#${j}` }));
+  c.concepts.forEach(k => (k.quiz || []).forEach((q, j) => pool.push({ q, key: `${k.id}#${j}` })));
+  // 優先出 boss 專屬題，再補觀念題
+  const own = shuffle(pool.filter(x => x.key[0] === 'B')), rest = shuffle(pool.filter(x => x.key[0] !== 'B'));
+  const N = B.n || 6;
+  const qs = own.slice(0, Math.ceil(N / 2)).concat(rest).slice(0, N);
+  let hp = qs.length, hearts = 3, idx = 0;
+  const A = $('#arena', el); $('#bossGo', el).classList.add('hidden');
+  const t0 = Date.now();
+  const draw = () => {
+    A.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px"><span>👹 ${B.name}</span><span class="hearts">${'❤️'.repeat(hearts)}${'🖤'.repeat(3 - hearts)}</span></div>
+      <div class="hp"><i style="width:${hp / qs.length * 100}%"></i></div><div id="bq"></div>`;
+    if (hp <= 0) return finish(true);
+    if (hearts <= 0 || idx >= qs.length) return finish(hp <= 0);
+    const item = qs[idx];
+    const box = $('#bq', A);
+    box.appendChild(renderQ(item.q, item.key, { ch: c.id, fresh: true, onDone: ok => {
+      $$('.opt,button', box).forEach(b => b.disabled = true);
+      if (ok) { hp--; toast('💥 命中魔王！'); } else { hearts--; A.classList.add('shake'); setTimeout(() => A.classList.remove('shake'), 400); }
+      const nx = document.createElement('button'); nx.className = 'btn'; nx.style.marginTop = '8px'; nx.textContent = '下一回合 ▶';
+      nx.onclick = () => { idx++; draw(); typeset(A); };
+      box.appendChild(nx);
+      if (hp <= 0 || hearts <= 0) { nx.textContent = '看結果 ▶'; }
+    } }));
+    typeset(A);
+  };
+  const finish = win => {
+    const secs = Math.round((Date.now() - t0) / 1000);
+    const st = S.boss[c.id] || { tries: 0 }; st.tries++; const first = !st.win;
+    if (win) st.win = true; S.boss[c.id] = st; save();
+    Rec.send('boss', { ch: c.id, correct: win ? 1 : 0, score: `${qs.length - hp}/${qs.length}`, hearts, secs });
+    if (win) {
+      let card = null;
+      if (first) { addXP(100, `擊敗 ${B.name}`); card = dropCard(); } else addXP(15, '再次討伐');
+      A.innerHTML = `<div style="text-align:center;padding:10px"><div class="bossart">🏆</div><h3>勝利！${B.name} 被擊敗了</h3>
+        ${B.outro ? `<p>${B.outro}</p>` : ''}${card ? `<p>你獲得一張科學家卡：<b>${card.e} ${card.n}</b>（到「成就與排行」查看）</p>` : ''}
+        <button class="btn" onclick="go('map')">回地圖，前往下一章 ▶</button></div>`;
+    } else {
+      A.innerHTML = `<div style="text-align:center;padding:10px"><div class="bossart">💫</div><h3>這次被打倒了…</h3><p>到「❌ 錯題本」看看哪裡出錯，複習後再來！</p>
+        <button class="btn" id="again">再挑戰一次</button></div>`;
+      $('#again', A).onclick = () => startBoss(c, el);
+    }
+    typeset(A);
+  };
+  draw();
+}
+function dropCard() {
+  const have = new Set(S.cards || []); const left = CARDS.filter(k => !have.has(k.id));
+  if (!left.length) return null;
+  const k = left[Math.floor(Math.random() * left.length)];
+  S.cards = (S.cards || []).concat(k.id); save();
+  setTimeout(() => modal(`<div class="cardart">${k.e}</div><h3>🃏 新科學家卡！</h3><h2 style="margin:4px 0">${k.n}</h2><div class="muted">${k.y || ''}</div><p style="text-align:left">${k.d}</p><button class="btn" onclick="closeModal()">收下</button>`), 600);
+  return k;
+}
+
+/* ---------------- formulas / glossary / wrong ---------------- */
+function viewFormulas(V) {
+  V.innerHTML = `<div class="card"><h2 style="margin:0">📒 公式卡總覽</h2><div class="muted">所有章節的重要公式集中在這裡，方便考前複習。可用關鍵字搜尋（例如：Voc、擴散、Planck）。</div>
+    <input class="search" id="fs" placeholder="搜尋公式名稱或說明…" style="margin-top:10px"></div><div id="fl"></div>`;
+  const draw = kw => {
+    const L = $('#fl', V); L.innerHTML = '';
+    CH.forEach(c => {
+      const items = []; c.concepts.forEach(k => (k.formulas || []).forEach(f => items.push([k, f])));
+      const f2 = items.filter(([k, f]) => !kw || (f.name + f.meaning + f.tex + k.title).toLowerCase().includes(kw.toLowerCase()));
+      if (!f2.length) return;
+      const d = document.createElement('div'); d.className = 'card';
+      d.innerHTML = `<h3 style="margin:0">${c.icon || ''} ${c.id === 0 ? '新手村' : c.bonus ? '番外篇' : '第 ' + c.id + ' 章'}　${esc(c.title)}</h3>` + f2.map(([k, f]) => `<div class="muted" style="font-size:13px;margin-top:10px">節點 ${k.id}・${esc(k.title)}</div>` + formulaCard(f)).join('');
+      L.appendChild(d);
+    });
+    typeset(L);
+  };
+  $('#fs', V).oninput = e => draw(e.target.value.trim()); draw('');
+}
+function viewGlossary(V) {
+  V.innerHTML = `<div class="card"><h2 style="margin:0">🔤 名詞小辭典</h2><div class="muted">中英對照＋一句話白話解釋（台灣用語／中國大陸譯名對照）。</div><input class="search" id="gs" placeholder="搜尋…" style="margin-top:10px"><div id="gl"></div></div>`;
+  const draw = kw => {
+    const rows = GLOSS.filter(g => !kw || (g.zh + g.en + (g.cn || '') + g.d).toLowerCase().includes(kw.toLowerCase()));
+    $('#gl', V).innerHTML = `<table class="data" style="width:100%"><tr><th>名詞</th><th>English</th><th>白話解釋</th></tr>${rows.map(g => `<tr><td><b>${g.zh}</b>${g.cn ? `<div class="muted" style="font-size:12px">陸譯：${g.cn}</div>` : ''}</td><td>${g.en}</td><td>${g.d}</td></tr>`).join('')}</table>`;
+    typeset($('#gl', V));
+  };
+  $('#gs', V).oninput = e => draw(e.target.value.trim()); draw('');
+}
+function findQ(key) {
+  const [a, j] = key.split('#');
+  if (a[0] === 'B') { const c = CH.find(x => 'B' + x.id === a); return c && c.boss && { q: c.boss.pool[+j], c }; }
+  for (const c of CH) for (const k of c.concepts) if (k.id === a) return { q: (k.quiz || [])[+j], c, k };
+  return null;
+}
+function viewWrong(V) {
+  const keys = Object.keys(S.wrong).sort((a, b) => S.wrong[b].t - S.wrong[a].t);
+  V.innerHTML = `<div class="card"><h2 style="margin:0">❌ 錯題本</h2><div class="muted">答錯的題目會自動收進來；在這裡重新答對就會移出。全部清空可得「錯題清零」徽章。</div>
+    ${keys.length ? '' : '<p>目前沒有錯題，太棒了！🎉</p>'}</div><div id="wl"></div>`;
+  const W = $('#wl', V);
+  keys.forEach(key => {
+    if (key.startsWith('P:')) {
+      const pid = key.slice(2), w = S.wrong[key];
+      const d = document.createElement('div'); d.className = 'card';
+      d.innerHTML = `<span class="pill red">計算題</span> ${w.q}　<button class="btn small" onclick="go('chapter',${w.ch})">回到第 ${w.ch} 章重做</button>`;
+      W.appendChild(d); return;
+    }
+    const f = findQ(key); if (!f || !f.q) return;
+    const d = document.createElement('div'); d.className = 'card';
+    d.innerHTML = `<div class="muted" style="font-size:13px">${f.c.id === 0 ? '新手村' : '第 ' + f.c.id + ' 章'}${f.k ? '・節點 ' + f.k.id + ' ' + esc(f.k.title) : '・魔王題'}</div>`;
+    d.appendChild(renderQ(f.q, key, { ch: f.c.id, concept: f.k, chapter: f.c, fresh: true }));
+    W.appendChild(d);
+  });
+}
+
+/* ---------------- hall: badges, cards, leaderboard ---------------- */
+async function viewHall(V) {
+  V.innerHTML = `<div class="card"><h2 style="margin:0">🏅 徽章</h2><div class="badges" id="bd" style="margin-top:10px"></div></div>
+  <div class="card"><h2 style="margin:0">🃏 科學家卡收藏 ${(S.cards || []).length}/${CARDS.length}</h2><div class="muted" style="font-size:14px">每擊敗一個新魔王會隨機掉落一張。</div><div class="badges" id="cd" style="margin-top:10px"></div></div>
+  <div class="card"><h2 style="margin:0">🏆 實驗室排行榜</h2><div id="lb" class="muted">讀取中…</div></div>`;
+  $('#bd', V).innerHTML = BADGES.map(b => `<div class="badge ${S.badges[b.id] ? '' : 'off'}"><div class="e">${b.e}</div><b>${b.n}</b><div class="muted">${b.d}</div></div>`).join('');
+  const have = new Set(S.cards || []);
+  $('#cd', V).innerHTML = CARDS.map(k => have.has(k.id)
+    ? `<div class="badge" style="cursor:pointer" onclick='showCard("${k.id}")'><div class="e">${k.e}</div><b>${k.n}</b><div class="muted">${k.y || ''}</div></div>`
+    : `<div class="badge off"><div class="e">❔</div><b>未收集</b></div>`).join('');
+  if (!CONFIG.API) { $('#lb', V).textContent = '老師尚未設定紀錄伺服器，排行榜暫不開放。'; return; }
+  const r = await apiGet({ action: 'board' });
+  if (!r || !r.rows) { $('#lb', V).textContent = '暫時讀不到排行榜（可能網路不穩），稍後再試。'; return; }
+  $('#lb', V).innerHTML = `<table class="board"><tr><th>#</th><th>修練者</th><th>等級</th><th>XP</th><th>魔王</th></tr>${r.rows.map((x, i) =>
+    `<tr class="${x.sid === S.sid ? 'me' : ''}"><td>${i < 3 ? ['🥇', '🥈', '🥉'][i] : i + 1}</td><td>${esc(x.name)}</td><td>Lv${x.level} ${esc(levelOf(x.xp).title)}</td><td>${x.xp}</td><td>${x.boss || 0}</td></tr>`).join('')}</table>`;
+}
+function showCard(id) { const k = CARDS.find(x => x.id === id); modal(`<div class="cardart">${k.e}</div><h2 style="margin:4px 0">${k.n}</h2><div class="muted">${k.y || ''}</div><p style="text-align:left">${k.d}</p><button class="btn" onclick="closeModal()">關閉</button>`); }
+
+/* ---------------- me ---------------- */
+function viewMe(V) {
+  const L = levelOf(S.xp);
+  const tt = Object.values(S.time).reduce((a, b) => a + b, 0);
+  V.innerHTML = `<div class="card"><h2 style="margin:0">👤 ${esc(S.name)}（${esc(S.sid)}）</h2>
+    <p>Lv${L.lv}「${L.title}」・${S.xp} XP・累計修練 ${Math.round(tt / 60)} 分鐘・連續 ${streak()} 天</p>
+    <table class="data"><tr><th>章節</th><th>觀念</th><th>計算</th><th>魔王</th><th>時間</th><th>平均自評</th></tr>
+    ${CH.map(c => { const s = chStats(c); const rs = c.concepts.map(k => S.rating[k.id] && S.rating[k.id].r).filter(Boolean);
+      return `<tr><td>${c.id === 0 ? '新手村' : c.bonus ? '番外' : c.id}. ${esc(c.title)}</td><td>${s.d}/${s.n}</td><td>${s.pd}/${s.pn}</td><td>${c.boss ? (chapterDone(c) ? '✅' : '—') : ''}</td><td>${Math.round((S.time[c.id] || 0) / 60)} 分</td><td>${rs.length ? (rs.reduce((a, b) => a + b, 0) / rs.length).toFixed(1) + '★' : '—'}</td></tr>`; }).join('')}
+    </table></div>
+    <div class="card"><h3 style="margin-top:0">💬 給老師的回饋</h3><textarea id="fbk" style="width:100%;min-height:80px;border:1px solid var(--line);border-radius:10px;padding:8px" placeholder="哪一章最難？哪裡講不清楚？想多一點什麼？"></textarea>
+    <button class="btn" id="fbs">送出回饋</button></div>
+    <div class="card"><h3 style="margin-top:0">⚙️ 其他</h3>
+      <button class="btn ghost" id="sync">☁️ 從雲端取回進度（換裝置時用）</button>
+      <button class="btn ghost" id="lo">🚪 登出（換人使用）</button>
+      <button class="btn ghost" id="forget">🎫 登出並清除本機的入場券</button>
+      <div class="muted" style="font-size:13px;margin-top:8px">${CONFIG.API ? '學習紀錄會同步到老師的試算表。' : '（老師尚未設定紀錄伺服器，進度只存在這台裝置。）'}</div></div>`;
+  $('#fbs', V).onclick = () => { const t = $('#fbk', V).value.trim(); if (!t) return; Rec.send('feedback', { comment: t }); $('#fbk', V).value = ''; toast('謝謝你的回饋！'); addXP(5, '提供回饋'); };
+  $('#lo', V).onclick = () => { leaveChapter(); Rec.flush(true); LS.del(KEYP + 'who'); location.hash = ''; location.reload(); };
+  $('#forget', V).onclick = () => { leaveChapter(); Rec.flush(true); LS.del(KEYP + 'who'); LS.del(KEYP + 'ticket'); location.hash = ''; location.reload(); };
+  $('#sync', V).onclick = async () => { const ok = await pullProgress(true); toast(ok ? '已取回雲端進度' : '雲端沒有更新的進度'); go('me'); };
+}
+async function pullProgress(force) {
+  const r = await apiGet({ action: 'progress', sid: S.sid });
+  if (r && r.data) {
+    try { const remote = JSON.parse(r.data); if (force || (remote.updated || 0) > (S.updated || 0)) { S = Object.assign(blankState(S.sid, S.name), remote, { name: S.name }); save(false); renderHUD(); return true; } } catch (e) {}
+  }
+  return false;
+}
+
+/* ---------------- tools (simulations) ---------------- */
+const TOOLS = [];  // filled by tools section below
+function viewTools(V) {
+  V.innerHTML = `<div class="card"><h2 style="margin:0">🧪 模擬實驗室</h2><div class="muted">拉動滑桿，親眼看公式在做什麼。每個工具第一次使用都有 XP。</div>
+    <div style="margin-top:8px">${TOOLS.map(t => `<button class="btn ghost small" style="margin:3px" onclick="document.getElementById('tl_${t.id}').scrollIntoView({behavior:'smooth'})">${t.icon} ${t.name}</button>`).join('')}</div></div><div id="tls"></div>`;
+  const T = $('#tls', V);
+  TOOLS.forEach(t => {
+    const d = document.createElement('div'); d.className = 'card tool'; d.id = 'tl_' + t.id;
+    d.innerHTML = `<h3 style="margin-top:0">${t.icon} ${t.name}</h3><div class="muted" style="font-size:14px">${t.desc}</div>`;
+    T.appendChild(d); t.build(d);
+    d.addEventListener('input', () => { if (!S.tools[t.id]) { S.tools[t.id] = 1; save(); addXP(8, '使用工具：' + t.name); Rec.send('tool', { item: t.id }); } }, { once: true });
+  });
+}
+/* tiny plotting helper */
+function plot(cv, cfg) {
+  const dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight;
+  cv.width = W * dpr; cv.height = H * dpr; const g = cv.getContext('2d'); g.scale(dpr, dpr);
+  const m = { l: 58, r: cfg.r2 ? 58 : 14, t: 14, b: 40 };
+  const [x0, x1] = cfg.x, [y0, y1] = cfg.y;
+  const X = x => m.l + (x - x0) / (x1 - x0) * (W - m.l - m.r);
+  const Y = y => H - m.b - (y - y0) / (y1 - y0) * (H - m.t - m.b);
+  g.clearRect(0, 0, W, H); g.font = '12px sans-serif'; g.strokeStyle = '#e5e7eb'; g.fillStyle = '#6b7280'; g.lineWidth = 1;
+  const nice = (a, b, n) => { const s = Math.pow(10, Math.floor(Math.log10((b - a) / n))); const k = [1, 2, 5, 10].find(k => (b - a) / (s * k) <= n) * s; const out = []; for (let v = Math.ceil(a / k) * k; v <= b + 1e-9; v += k) out.push(+v.toFixed(10)); return out; };
+  nice(x0, x1, 8).forEach(v => { g.beginPath(); g.moveTo(X(v), m.t); g.lineTo(X(v), H - m.b); g.stroke(); g.fillText(cfg.xfmt ? cfg.xfmt(v) : v, X(v) - 8, H - m.b + 15); });
+  nice(y0, y1, 6).forEach(v => { g.beginPath(); g.moveTo(m.l, Y(v)); g.lineTo(W - m.r, Y(v)); g.stroke(); g.fillText(cfg.yfmt ? cfg.yfmt(v) : v, 4, Y(v) + 4); });
+  g.fillStyle = '#111827'; g.fillText(cfg.xl || '', W / 2 - 30, H - 6);
+  g.save(); g.translate(12, m.t + 4); g.fillText(cfg.yl || '', 0, 0); g.restore();
+  (cfg.series || []).forEach(s => {
+    g.strokeStyle = s.c || '#2563eb'; g.lineWidth = s.w || 2.2; g.setLineDash(s.dash || []); g.beginPath();
+    let st = false; s.pts.forEach(([x, y]) => { if (!isFinite(y)) { st = false; return; } const yy = Math.max(y0 - (y1 - y0), Math.min(y1 + (y1 - y0), y)); if (!st) { g.moveTo(X(x), Y(yy)); st = true; } else g.lineTo(X(x), Y(yy)); });
+    g.stroke(); g.setLineDash([]);
+    if (s.label) { g.fillStyle = s.c || '#2563eb'; const p = s.pts[s.lp || Math.floor(s.pts.length * 0.7)]; if (p && isFinite(p[1])) g.fillText(s.label, X(p[0]) + 4, Y(p[1]) - 6); }
+  });
+  (cfg.dots || []).forEach(dt => { g.fillStyle = dt.c || '#ef4444'; g.beginPath(); g.arc(X(dt.x), Y(dt.y), 5, 0, 7); g.fill(); if (dt.label) g.fillText(dt.label, X(dt.x) + 7, Y(dt.y) - 7); });
+  (cfg.rects || []).forEach(r => { g.fillStyle = r.c; g.fillRect(X(r.x0), Y(r.y1), X(r.x1) - X(r.x0), Y(r.y0) - Y(r.y1)); });
+}
+function slider(id, label, min, max, step, val, fmt) {
+  return `<label>${label}：<b id="${id}_v"></b><input type="range" id="${id}" min="${min}" max="${max}" step="${step}" value="${val}" data-fmt="${fmt || ''}"></label>`;
+}
+function sv(root, id) { return parseFloat($('#' + id, root).value); }
+
+/* ===================== 模擬實驗室工具 ===================== */
+const PHY = { q: 1.602e-19, k: 1.381e-23, h: 6.626e-34, c: 2.998e8, kev: 8.617e-5, sigma: 5.67e-8, e0: 8.854e-14 /* F/cm */ };
+
+function bindSliders(root, fn) {
+  const upd = () => { $$('input[type=range]', root).forEach(r => { const f = r.dataset.fmt; const v = parseFloat(r.value); $('#' + r.id + '_v', root).textContent = f === 'exp' ? fmtE(Math.pow(10, v)) : f ? f.replace('%', v) : v; }); fn(); };
+  $$('input,select', root).forEach(i => i.addEventListener('input', upd)); upd();
+}
+function fmtE(x, d = 2) {
+  if (x === 0) return '0';
+  let e = Math.floor(Math.log10(Math.abs(x))); let m = +(x / Math.pow(10, e)).toFixed(d - 1);
+  if (Math.abs(m) >= 10) { m /= 10; e++; }
+  if (e >= -2 && e <= 3) return (+x.toPrecision(d + 1)).toString();
+  return m.toFixed(d - 1) + '×10' + String(e).replace('-', '⁻').replace(/\d/g, c => '⁰¹²³⁴⁵⁶⁷⁸⁹'[c]);
+}
+
+/* ---- 1. 光子與單位換算 ---- */
+TOOLS.push({ id: 'units', icon: '🔁', name: '光子能量與單位換算器', desc: '波長 ↔ 光子能量、光功率 ↔ 光子通量、溫度 ↔ kT 與熱電壓。做計算題時隨時來這裡驗算。',
+  build(d) {
+    d.insertAdjacentHTML('beforeend', `<div class="ctl">
+      <label>波長 λ (nm)<input id="u_l" type="number" value="550" style="width:100%"></label>
+      <label>光功率密度 (mW/cm²)<input id="u_p" type="number" value="100" style="width:100%"></label>
+      <label>溫度 T (K)<input id="u_t" type="number" value="300" style="width:100%"></label></div><div class="out" id="u_o"></div>
+      <div class="analogy">🍼 口訣：<b>E(eV) ≈ 1240 / λ(nm)</b>。波長越短（越藍）光子越「有力」；同樣的功率，紅光的光子數比藍光多。</div>`);
+    const f = () => {
+      const l = +$('#u_l', d).value, P = +$('#u_p', d).value, T = +$('#u_t', d).value;
+      const E = 1239.84 / l, Ej = E * PHY.q, flux = (P * 1e-3) / Ej;
+      $('#u_o', d).innerHTML = `<div>光子能量 E = <b>${E.toFixed(3)}</b> eV = ${fmtE(Ej)} J</div>
+        <div>光子通量（單色光）= <b>${fmtE(flux)}</b> 個/cm²·s</div>
+        <div>若每個光子都產生一個電子：J = <b>${(flux * PHY.q * 1e3).toFixed(1)}</b> mA/cm²</div>
+        <div>kT = <b>${(PHY.kev * T).toFixed(4)}</b> eV，熱電壓 kT/q = <b>${(PHY.kev * T * 1000).toFixed(1)}</b> mV</div>
+        <div>頻率 ν = ${fmtE(PHY.c / (l * 1e-9))} Hz</div>`;
+    };
+    $$('input', d).forEach(i => i.addEventListener('input', f)); f();
+  } });
+
+/* ---- 2. 細緻平衡效率極限 (Shockley–Queisser) ---- */
+function bbFlux(Eg, T, Emax) {   // photons m^-2 s^-1 emitted into hemisphere by blackbody at T, for E>Eg ; E in eV
+  const kT = PHY.kev * T, pre = 2 * Math.PI / (Math.pow(PHY.h, 3) * PHY.c * PHY.c) * Math.pow(PHY.q, 3);
+  if (Eg / kT > 30) { // Boltzmann analytic
+    return pre * kT * Math.exp(-Eg / kT) * (Eg * Eg + 2 * Eg * kT + 2 * kT * kT);
+  }
+  const top = Math.max(Eg + 40 * kT, Emax || 0), N = 600, h = (top - Eg) / N; let s = 0;
+  for (let i = 0; i <= N; i++) { const E = Eg + i * h; const f = E * E / Math.expm1(E / kT); s += (i === 0 || i === N ? 1 : i % 2 ? 4 : 2) * f; }
+  return pre * s * h / 3;
+}
+function sqCell(Eg, X, Ts, Ta) {
+  const fs = 2.16e-5;
+  const Jsc = PHY.q * X * fs * bbFlux(Eg, Ts);      // A/m^2
+  const J0 = PHY.q * bbFlux(Eg, Ta);                // A/m^2
+  const Vt = PHY.kev * Ta;
+  const Voc = Vt * Math.log(Jsc / J0 + 1);
+  let Pm = 0, Vm = 0;
+  for (let i = 1; i < 400; i++) { const V = Voc * i / 400; const P = V * (Jsc - J0 * Math.expm1(V / Vt)); if (P > Pm) { Pm = P; Vm = V; } }
+  const Pin = X * fs * PHY.sigma * Math.pow(Ts, 4);
+  return { Jsc, J0, Voc, Pm, Vm, FF: Pm / (Voc * Jsc), eta: Pm / Pin, Pin };
+}
+TOOLS.push({ id: 'sq', icon: '🌞', name: '細緻平衡效率極限（Shockley–Queisser）', desc: '把太陽當成 5778 K 黑體、電池只有輻射複合，看看「能隙 Eg」怎麼決定理論最高效率。對應 Nelson 第 2 章、Würfel 第 7 章。',
+  build(d) {
+    d.insertAdjacentHTML('beforeend', `<div class="ctl">${slider('sq_eg', '能隙 Eg (eV)', 0.5, 2.6, 0.01, 1.34)}${slider('sq_x', '聚光倍率 log₁₀X', 0, 4.66, 0.01, 0, 'exp')}
+      ${slider('sq_ts', '太陽溫度 Ts (K)', 5000, 6500, 10, 5778)}${slider('sq_ta', '電池溫度 Ta (K)', 250, 400, 1, 300)}</div>
+      <canvas id="sq_c"></canvas><div class="out" id="sq_o"></div>
+      <div class="analogy">🍼 為什麼有「最佳能隙」？能隙太小：很多光子都能吸收（電流大），但每個電子只帶出一點點能量（電壓小），多餘能量變成熱。能隙太大：每個電子很有力（電壓大），但大部分光子穿過去不被吸收（電流小）。兩者相乘的「功率」在中間有最大值。</div>`);
+    const cv = $('#sq_c', d); let cache = {};
+    bindSliders(d, () => {
+      const Eg = sv(d, 'sq_eg'), X = Math.pow(10, sv(d, 'sq_x')), Ts = sv(d, 'sq_ts'), Ta = sv(d, 'sq_ta');
+      const key = [X, Ts, Ta].join();
+      if (!cache[key]) { const pts = []; for (let e = 0.5; e <= 2.6; e += 0.025) pts.push([e, sqCell(e, X, Ts, Ta).eta * 100]); cache = { [key]: pts }; }
+      const r = sqCell(Eg, X, Ts, Ta);
+      plot(cv, { x: [0.5, 2.6], y: [0, X > 100 ? 50 : 40], xl: '能隙 Eg (eV)', yl: '效率 η (%)', series: [{ pts: cache[key], c: '#f59e0b' }],
+        dots: [{ x: Eg, y: r.eta * 100, label: (r.eta * 100).toFixed(1) + '%' }, { x: 1.12, y: sqCell(1.12, X, Ts, Ta).eta * 100, c: '#2563eb', label: 'Si' }, { x: 1.42, y: sqCell(1.42, X, Ts, Ta).eta * 100, c: '#16a34a', label: 'GaAs' }] });
+      $('#sq_o', d).innerHTML = `<div>入射功率 <b>${(r.Pin / 10).toFixed(1)}</b> mW/cm²</div><div>Jsc <b>${(r.Jsc / 10).toFixed(1)}</b> mA/cm²</div>
+        <div>J₀ <b>${fmtE(r.J0 / 1e4)}</b> A/cm²</div><div>Voc <b>${r.Voc.toFixed(3)}</b> V</div><div>Eg/q − Voc = <b>${(Eg - r.Voc).toFixed(3)}</b> V</div>
+        <div>FF <b>${(r.FF * 100).toFixed(1)}</b> %</div><div>η <b>${(r.eta * 100).toFixed(1)}</b> %</div>`;
+    });
+  } });
+
+/* ---- 3. J-V 曲線 (單二極體模型) ---- */
+function jvSolve(V, p) {   // returns J (A/cm2), light-generated positive
+  const Vt = PHY.kev * p.T * p.n;
+  const f = J => p.Jsc - p.J0 * Math.expm1((V + J * p.Rs) / Vt) - (V + J * p.Rs) / p.Rsh - J;
+  let lo = -1, hi = p.Jsc + 1;
+  for (let i = 0; i < 80; i++) { const m = (lo + hi) / 2; if (f(m) > 0) lo = m; else hi = m; }
+  return (lo + hi) / 2;
+}
+TOOLS.push({ id: 'jv', icon: '📈', name: 'J–V 曲線產生器（單二極體＋寄生電阻）', desc: '調整 Jsc、J₀、理想因子 n、串聯電阻 Rs、並聯電阻 Rsh，看 Voc、FF、效率怎麼變。對應 Nelson 第 1、6 章。',
+  build(d) {
+    d.insertAdjacentHTML('beforeend', `<div class="ctl">${slider('jv_jsc', 'Jsc (mA/cm²)', 0, 45, 0.5, 35)}${slider('jv_j0', 'log₁₀ J₀ (A/cm²)', -16, -6, 0.1, -12, 'exp')}
+      ${slider('jv_n', '理想因子 n', 1, 2.5, 0.05, 1)}${slider('jv_rs', '串聯電阻 Rs (Ω·cm²)', 0, 10, 0.1, 0.5)}
+      ${slider('jv_rsh', 'log₁₀ 並聯電阻 Rsh (Ω·cm²)', 1, 5, 0.05, 4, 'exp')}${slider('jv_t', '溫度 T (K)', 250, 360, 1, 300)}
+      <label><input type="checkbox" id="jv_dark"> 同時畫暗電流曲線</label></div>
+      <canvas id="jv_c"></canvas><div class="out" id="jv_o"></div>
+      <div class="analogy">🍼 看圖技巧：J–V 曲線越「方」，填充因子 FF 越大。Rs 變大 → 靠近 Voc 那一側變斜；Rsh 變小 → 靠近 Jsc 那一側變斜。紅點是最大功率點 (MPP)，它和兩軸圍出的長方形面積就是電池能輸出的最大功率。</div>`);
+    const cv = $('#jv_c', d);
+    bindSliders(d, () => {
+      const p = { Jsc: sv(d, 'jv_jsc') / 1000, J0: Math.pow(10, sv(d, 'jv_j0')), n: sv(d, 'jv_n'), Rs: sv(d, 'jv_rs'), Rsh: Math.pow(10, sv(d, 'jv_rsh')), T: sv(d, 'jv_t') };
+      let lo = 0, hi = 2; for (let i = 0; i < 60; i++) { const m = (lo + hi) / 2; if (jvSolve(m, p) > 0) lo = m; else hi = m; }
+      const Voc = p.Jsc > 0 ? (lo + hi) / 2 : 0, Jsc0 = jvSolve(0, p);
+      const pts = [], dk = [], pw = []; let Pm = 0, Vm = 0, Jm = 0;
+      const Vmax = Math.max(0.2, Voc * 1.15);
+      for (let i = 0; i <= 240; i++) { const V = -0.05 + (Vmax + 0.05) * i / 240; const J = jvSolve(V, p); pts.push([V, J * 1000]); pw.push([V, V * J * 1000]);
+        if (V > 0 && V * J > Pm) { Pm = V * J; Vm = V; Jm = J; }
+        if ($('#jv_dark', d).checked) dk.push([V, jvSolve(V, Object.assign({}, p, { Jsc: 0 })) * 1000]); }
+      const ymax = Math.max(5, p.Jsc * 1000 * 1.15);
+      plot(cv, { x: [-0.05, Vmax], y: [-ymax * 0.15, ymax], xl: '電壓 V (V)', yl: 'J (mA/cm²)', series: [{ pts, c: '#2563eb', label: 'J–V（照光）' }, { pts: pw, c: '#f59e0b', dash: [5, 4], label: '功率 P (mW/cm²)' }].concat(dk.length ? [{ pts: dk, c: '#6b7280', label: '暗電流' }] : []),
+        dots: [{ x: Vm, y: Jm * 1000, label: 'MPP' }], rects: [{ x0: 0, x1: Vm, y0: 0, y1: Jm * 1000, c: 'rgba(239,68,68,.08)' }] });
+      const FF = Voc && Jsc0 ? Pm / (Voc * Jsc0) : 0;
+      $('#jv_o', d).innerHTML = `<div>Jsc <b>${(Jsc0 * 1000).toFixed(2)}</b> mA/cm²</div><div>Voc <b>${Voc.toFixed(3)}</b> V</div><div>Vmp <b>${Vm.toFixed(3)}</b> V</div><div>Jmp <b>${(Jm * 1000).toFixed(2)}</b> mA/cm²</div>
+        <div>FF <b>${(FF * 100).toFixed(1)}</b> %</div><div>η（入射 100 mW/cm²）<b>${(Pm * 1000).toFixed(2)}</b> %</div>`;
+    });
+  } });
+
+/* ---- 4. p-n 結能帶圖 ---- */
+TOOLS.push({ id: 'pn', icon: '⛰️', name: 'p-n 結能帶圖與空乏區', desc: '改變摻雜濃度與外加偏壓，觀察內建電位 Vbi、空乏區寬度 W、最大電場與準費米能階分裂。對應 Nelson 第 5、6 章（空乏近似）。',
+  build(d) {
+    d.insertAdjacentHTML('beforeend', `<div class="ctl"><label>材料<select id="pn_m"><option value="si">矽 Si（Eg 1.12 eV, nᵢ=1×10¹⁰）</option><option value="gaas">砷化鎵 GaAs（Eg 1.42 eV, nᵢ=2.1×10⁶）</option></select></label>
+      ${slider('pn_na', 'p 側受體 log₁₀Na (cm⁻³)', 14, 19, 0.1, 16, 'exp')}${slider('pn_nd', 'n 側施體 log₁₀Nd (cm⁻³)', 14, 19, 0.1, 18, 'exp')}${slider('pn_v', '外加偏壓 V（正=順偏）', -2, 1.2, 0.01, 0)}</div>
+      <canvas id="pn_c" style="height:330px"></canvas><div class="out" id="pn_o"></div>
+      <div class="analogy">🍼 把能帶想成「地形」：電子像球往低處滾（往下），電洞像氣泡往上浮。p-n 結中間那段斜坡就是內建電場；順向偏壓把坡壓低（電流容易流），逆向偏壓把坡墊高（幾乎不導通）。虛線是準費米能階：兩條分開的距離 = qV，代表系統「被推離平衡」的程度。</div>`);
+    const cv = $('#pn_c', d);
+    bindSliders(d, () => {
+      const M = $('#pn_m', d).value === 'si' ? { Eg: 1.12, ni: 1e10, er: 11.7 } : { Eg: 1.42, ni: 2.1e6, er: 12.9 };
+      const Na = Math.pow(10, sv(d, 'pn_na')), Nd = Math.pow(10, sv(d, 'pn_nd')); let V = sv(d, 'pn_v');
+      const kT = 0.02585, eps = M.er * PHY.e0;
+      const Vbi = kT * Math.log(Na * Nd / (M.ni * M.ni));
+      let note = '';
+      if (V > Vbi - 0.05) { V = Vbi - 0.05; note = '（順偏太大，空乏近似失效，已限制在 Vbi−0.05 V）'; }
+      const W = Math.sqrt(2 * eps * (Vbi - V) / PHY.q * (1 / Na + 1 / Nd)); // cm
+      const xn = W * Na / (Na + Nd), xp = W * Nd / (Na + Nd);
+      const Emax = PHY.q * Nd * xn / eps;
+      const L = Math.max(W * 1.6, 1e-6), x0 = -L, x1 = L;
+      const dEn = kT * Math.log(Nd / M.ni), dEp = kT * Math.log(Na / M.ni); // EF-Ei on n side, Ei-EF on p side
+      const EcN = M.Eg / 2 - dEn;  // with EFn(n side)=0
+      const U = x => x <= -xp ? (Vbi - V) : x <= 0 ? (Vbi - V) - PHY.q * Na * Math.pow(x + xp, 2) / (2 * eps) : x <= xn ? PHY.q * Nd * Math.pow(xn - x, 2) / (2 * eps) : 0;
+      const Ec = [], Ev = [], Ei = [];
+      for (let i = 0; i <= 300; i++) { const x = x0 + (x1 - x0) * i / 300; const u = U(x); Ec.push([x * 1e4, EcN + u]); Ev.push([x * 1e4, EcN + u - M.Eg]); Ei.push([x * 1e4, EcN + u - M.Eg / 2]); }
+      const efn = [[-xp * 1e4, 0], [x1 * 1e4, 0]], efp = [[x0 * 1e4, -V], [xn * 1e4, -V]];
+      const ylo = Math.min(EcN - M.Eg, -V) - 0.3, yhi = EcN + Vbi + 0.3;
+      plot(cv, { x: [x0 * 1e4, x1 * 1e4], y: [ylo, yhi], xl: '位置 x (µm)　← p 側 | n 側 →', yl: '電子能量 (eV)', xfmt: v => v.toFixed(2),
+        series: [{ pts: Ec, c: '#2563eb', label: 'Ec', lp: 20 }, { pts: Ev, c: '#dc2626', label: 'Ev', lp: 20 }, { pts: Ei, c: '#9ca3af', dash: [2, 4] },
+          { pts: efn, c: '#2563eb', dash: [7, 5], w: 1.5, label: 'EFn', lp: 1 }, { pts: efp, c: '#dc2626', dash: [7, 5], w: 1.5, label: 'EFp', lp: 0 }],
+        rects: [{ x0: -xp * 1e4, x1: xn * 1e4, y0: ylo, y1: yhi, c: 'rgba(245,158,11,.10)' }] });
+      $('#pn_o', d).innerHTML = `<div>內建電位 Vbi <b>${Vbi.toFixed(3)}</b> V</div><div>空乏區寬 W <b>${(W * 1e4).toFixed(3)}</b> µm</div>
+        <div>xp（p 側）<b>${(xp * 1e4).toFixed(3)}</b> µm</div><div>xn（n 側）<b>${(xn * 1e4).toFixed(3)}</b> µm</div>
+        <div>最大電場 <b>${fmtE(Emax)}</b> V/cm</div><div>準費米分裂 <b>${V.toFixed(2)}</b> eV ${note}</div>`;
+    });
+  } });
+
+/* ---- 5. 吸收與陷光 ---- */
+const ALPHA = {
+  si: { n: 3.5, name: '矽 Si', t: [[400, 9.5e4], [450, 2.55e4], [500, 1.11e4], [550, 6.4e3], [600, 4.1e3], [650, 2.8e3], [700, 1.9e3], [750, 1.3e3], [800, 850], [850, 535], [900, 306], [950, 157], [1000, 64], [1050, 16.3], [1100, 3.5], [1150, 0.3]] },
+  gaas: { n: 3.6, name: '砷化鎵 GaAs', t: [[400, 6e5], [500, 1.2e5], [600, 5.5e4], [700, 3.3e4], [800, 1.5e4], [850, 9e3], [870, 2e3], [880, 100]] },
+  asi: { n: 4.0, name: '非晶矽 a-Si:H', t: [[400, 1e6], [500, 3e5], [550, 1.5e5], [600, 6e4], [650, 1.7e4], [700, 3e3], [750, 400], [800, 50]] }
+};
+function alphaAt(m, l) { const t = ALPHA[m].t; if (l <= t[0][0]) return t[0][1]; for (let i = 1; i < t.length; i++) if (l <= t[i][0]) { const [a, b] = [t[i - 1], t[i]]; const f = (l - a[0]) / (b[0] - a[0]); return Math.exp(Math.log(a[1]) * (1 - f) + Math.log(b[1]) * f); } return 1e-3; }
+TOOLS.push({ id: 'abs', icon: '🔦', name: '光吸收：Beer–Lambert 與陷光', desc: '選材料和波長，比較「單次穿透」「背面鏡反射一次」與「理想朗伯陷光（4n² 極限）」需要多厚才吸得夠。對應 Nelson 第 4、11 章、Würfel 7.3.1。',
+  build(d) {
+    d.insertAdjacentHTML('beforeend', `<div class="ctl"><label>材料<select id="ab_m"><option value="si">矽 Si（間接能隙）</option><option value="gaas">砷化鎵 GaAs（直接能隙）</option><option value="asi">非晶矽 a-Si:H</option></select></label>
+      ${slider('ab_l', '波長 λ (nm)', 400, 1150, 5, 900)}${slider('ab_w', '厚度 log₁₀W (µm)', -2, 3, 0.02, 1.3, 'exp')}</div>
+      <canvas id="ab_c"></canvas><div class="out" id="ab_o"></div>
+      <div class="analogy">🍼 吸收係數 α 的倒數 1/α 叫「吸收深度」：光走這麼遠會被吃掉約 63%。矽是間接能隙，紅外光的 α 很小，所以要嘛做很厚（~180 µm），要嘛用陷光讓光在裡面多繞幾圈。</div>`);
+    const cv = $('#ab_c', d);
+    bindSliders(d, () => {
+      const m = $('#ab_m', d).value, l = sv(d, 'ab_l'), W = Math.pow(10, sv(d, 'ab_w')); const a = alphaAt(m, l), n = ALPHA[m].n;
+      const A1 = w => 1 - Math.exp(-a * w * 1e-4), A2 = w => 1 - Math.exp(-2 * a * w * 1e-4), AL = w => { const x = 4 * n * n * a * w * 1e-4; return x / (1 + x); };
+      const s1 = [], s2 = [], s3 = [];
+      for (let i = 0; i <= 200; i++) { const lw = -2 + 5 * i / 200, w = Math.pow(10, lw); s1.push([lw, A1(w) * 100]); s2.push([lw, A2(w) * 100]); s3.push([lw, AL(w) * 100]); }
+      plot(cv, { x: [-2, 3], y: [0, 100], xl: 'log₁₀ 厚度 (µm)　例：1 → 10 µm、2 → 100 µm', yl: '吸收比例 (%)', series: [{ pts: s1, c: '#2563eb', label: '單次穿透' }, { pts: s2, c: '#16a34a', label: '背鏡雙程' }, { pts: s3, c: '#f59e0b', label: '朗伯陷光 4n²', lp: 60 }],
+        dots: [{ x: Math.log10(W), y: A1(W) * 100, c: '#2563eb' }, { x: Math.log10(W), y: AL(W) * 100, c: '#f59e0b' }] });
+      const w90 = -Math.log(0.1) / a * 1e4;
+      $('#ab_o', d).innerHTML = `<div>光子能量 <b>${(1239.84 / l).toFixed(2)}</b> eV</div><div>α ≈ <b>${fmtE(a)}</b> cm⁻¹</div><div>吸收深度 1/α ≈ <b>${fmtE(1e4 / a)}</b> µm</div>
+        <div>單次吸 90% 需 <b>${fmtE(w90)}</b> µm</div><div>厚度 ${fmtE(W)} µm：單次 <b>${(A1(W) * 100).toFixed(1)}</b>%、陷光 <b>${(AL(W) * 100).toFixed(1)}</b>%</div><div>光程增強上限 4n² ≈ <b>${(4 * n * n).toFixed(0)}</b> 倍</div>`;
+    });
+  } });
+
+/* ---- 6. 載子濃度與擴散長度 ---- */
+TOOLS.push({ id: 'carrier', icon: '⚛️', name: '載子濃度、費米能階與擴散長度', desc: '輸入摻雜與溫度算 n、p、費米能階位置；輸入遷移率與壽命算擴散係數與擴散長度（以矽為例）。對應 Nelson 第 3、4 章。',
+  build(d) {
+    d.insertAdjacentHTML('beforeend', `<div class="ctl">${slider('ca_nd', '施體 log₁₀Nd (cm⁻³)', 10, 20, 0.1, 16, 'exp')}${slider('ca_na', '受體 log₁₀Na (cm⁻³)', 10, 20, 0.1, 10, 'exp')}
+      ${slider('ca_t', '溫度 T (K)', 200, 600, 5, 300)}${slider('ca_mu', '少數載子遷移率 µ (cm²/V·s)', 50, 1500, 10, 450)}${slider('ca_tau', '少數載子壽命 log₁₀τ (s)', -9, -2, 0.1, -5, 'exp')}</div>
+      <div class="out" id="ca_o"></div><canvas id="ca_c" style="height:180px"></canvas>
+      <div class="analogy">🍼 摻雜就像在一大群「中性人」裡放進幾個「帶錢的人」（施體送出電子）。多數載子幾乎等於摻雜濃度，少數載子被 np = nᵢ² 壓得很少。擴散長度 L = √(Dτ) 是少數載子「在被複合掉之前平均能走多遠」——它要比電池厚度長，電子才收得到。</div>`);
+    const cv = $('#ca_c', d);
+    bindSliders(d, () => {
+      const Nd = Math.pow(10, sv(d, 'ca_nd')), Na = Math.pow(10, sv(d, 'ca_na')), T = sv(d, 'ca_t'), mu = sv(d, 'ca_mu'), tau = Math.pow(10, sv(d, 'ca_tau'));
+      const kT = PHY.kev * T, Eg = 1.12;
+      const ni = 1e10 * Math.pow(T / 300, 1.5) * Math.exp(-Eg / (2 * PHY.kev) * (1 / T - 1 / 300));
+      const N = (Nd - Na) / 2, n = N + Math.sqrt(N * N + ni * ni), p = ni * ni / n;
+      const EF = kT * Math.log(n / ni), D = mu * kT, Ld = Math.sqrt(D * tau);
+      $('#ca_o', d).innerHTML = `<div>nᵢ <b>${fmtE(ni)}</b> cm⁻³</div><div>電子 n <b>${fmtE(n)}</b></div><div>電洞 p <b>${fmtE(p)}</b></div>
+        <div>型態 <b>${n > p * 10 ? 'n 型' : p > n * 10 ? 'p 型' : '接近本質'}</b></div><div>E_F − E_i <b>${EF.toFixed(3)}</b> eV</div>
+        <div>D = µkT/q <b>${D.toFixed(2)}</b> cm²/s</div><div>擴散長度 L <b>${fmtE(Ld * 1e4)}</b> µm</div>`;
+      const Ei = 0, half = Eg / 2;
+      plot(cv, { x: [0, 1], y: [-0.8, 0.8], xl: '', yl: '能量 (eV)', xfmt: () => '', series: [{ pts: [[0, half], [1, half]], c: '#2563eb', label: 'Ec' }, { pts: [[0, -half], [1, -half]], c: '#dc2626', label: 'Ev' },
+        { pts: [[0, Ei], [1, Ei]], c: '#9ca3af', dash: [2, 4], label: 'Ei（本質能階）', lp: 0 }, { pts: [[0, Math.max(-0.75, Math.min(0.75, EF))], [1, Math.max(-0.75, Math.min(0.75, EF))]], c: '#f59e0b', w: 3, dash: [8, 4], label: 'E_F', lp: 1 }] });
+    });
+  } });
+
+
+/* ---------------- boot ---------------- */
+async function tryTicket(pass, silent) {
+  try {
+    const src = await decryptPayload(pass);
+    loadContent(src);
+    LS.set(KEYP + 'ticket', pass);
+    return true;
+  } catch (e) {
+    if (!silent) $('#errTicket').textContent = PAYLOAD.ct ? '❌ 通行碼不正確，請再確認一次（大小寫有分）。' : '❌ 找不到課程內容檔 content.enc.js，請通知老師。';
+    return false;
+  }
+}
+async function doLogin(sid, name, silent) {
+  sid = sid.trim().toUpperCase(); name = name.trim();
+  if (!sid || !name) { $('#errLogin').textContent = '學號和姓名都要填喔'; return; }
+  if (CONFIG.API && CONFIG.ROSTER && !silent) {
+    $('#errLogin').textContent = '核對實驗室名單中…';
+    const r = await apiGet({ action: 'check', sid, name });
+    if (!r) { $('#errLogin').textContent = '連不上名單伺服器，請確認網路後再試。'; return; }
+    if (!r.ok) { $('#errLogin').textContent = '❌ 名單上找不到這個學號＋姓名，請聯絡指導老師加入名單。'; Rec.q.push({ type: 'denied', sid, name, ts: new Date().toISOString(), app: 'PVQuest' }); Rec.flush(); return; }
+  }
+  S = LS.get(KEYP + 'st_' + sid, null) || blankState(sid, name);
+  S.name = name;
+  LS.set(KEYP + 'who', { sid, name });
+  $('#gate').classList.add('hidden'); $('#app').classList.remove('hidden');
+  Rec.init();
+  const today = nowDay(), newDay = !S.days.includes(today);
+  if (newDay) S.days.push(today);
+  Rec.send('login', { level: levelOf(S.xp).lv, xp: S.xp, ua: navigator.userAgent.slice(0, 80) });
+  renderHUD();
+  if (CONFIG.API) { const changed = await pullProgress(false); if (changed) toast('已從雲端載入你的進度'); }
+  if (newDay) addXP(5, '今日簽到'); else save(false);
+  checkBadges();
+  const h = location.hash;
+  const m = h.match(/ch=(\d+)/);
+  if (m && CH.find(c => c.id === +m[1]) && unlocked(CH.find(c => c.id === +m[1]))) go('chapter', +m[1]);
+  else if (/#(tools|formulas|glossary|wrong|hall|me)\b/.test(h)) go(h.slice(1).split(/[&?]/)[0]);
+  else go('map');
+}
+$('#tabs').addEventListener('click', e => { const b = e.target.closest('button'); if (b) go(b.dataset.v); });
+$('#modal').addEventListener('click', e => { if (e.target.id === 'modal') closeModal(); });
+$('#btnTicket').onclick = async () => {
+  const p = $('#pass').value; if (!p) return;
+  $('#errTicket').textContent = '驗證中…';
+  if (await tryTicket(p)) showLogin();
+};
+$('#pass').addEventListener('keydown', e => { if (e.key === 'Enter') $('#btnTicket').click(); });
+$('#btnLogin').onclick = () => doLogin($('#sid').value, $('#sname').value);
+$('#sname').addEventListener('keydown', e => { if (e.key === 'Enter') $('#btnLogin').click(); });
+function showLogin() {
+  $('#stepTicket').classList.add('hidden'); $('#stepLogin').classList.remove('hidden');
+  const w = LS.get(KEYP + 'who', null); if (w) { $('#sid').value = w.sid; $('#sname').value = w.name; }
+  $('#sid').focus();
+}
+window.addEventListener('beforeunload', () => { if (S) { leaveChapter(); Rec.flush(true); } });
+(async function boot() {
+  // QR code 入場券：網址 #t=通行碼
+  const m = location.hash.match(/[#&]t=([^&]+)/);
+  let pass = m ? decodeURIComponent(m[1]) : LS.get(KEYP + 'ticket', null);
+  if (m) history.replaceState(null, '', location.pathname + location.search);
+  if (pass && await tryTicket(pass, true)) {
+    const w = LS.get(KEYP + 'who', null);
+    if (w && !m) return doLogin(w.sid, w.name, true);
+    showLogin();
+  } else if (pass) { LS.del(KEYP + 'ticket'); $('#errTicket').textContent = '入場券已失效（老師可能更換了通行碼），請輸入新的通行碼。'; }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
+<title>太陽電池修練場：老師工具</title>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<style>body{font-family:-apple-system,"PingFang TC","Microsoft JhengHei",sans-serif;max-width:680px;margin:30px auto;padding:0 16px;color:#1d2433;line-height:1.7}
+.box{border:1px solid #e5e7eb;border-radius:14px;padding:16px 18px;margin:18px 0}
+input{width:100%;padding:9px;border:1.5px solid #ddd;border-radius:9px;margin:4px 0 12px;font-size:15px;box-sizing:border-box}
+button{background:#f59e0b;border:0;border-radius:9px;padding:10px 18px;font-weight:700;font-size:15px;cursor:pointer}
+#qr{margin:14px 0;padding:12px;background:#fff;display:inline-block}.warn{background:#fef3c7;padding:10px 14px;border-radius:10px;font-size:14px}code{word-break:break-all}.ok{color:#15803d}.bad{color:#b91c1c}</style></head>
+<body><h2>🎓 太陽電池修練場：老師工具</h2>
+<div class="warn">這個頁面<b>不含</b>任何通行碼，也不會把資料送到任何伺服器；所有運算都在你的瀏覽器裡完成。</div>
+
+<div class="box"><h3>① 產生入場券 QR code</h3>
+<p>學生掃描 QR code 就會自動帶入通行碼，只需再輸入學號、姓名。QR code 等同通行碼：<b>只發給實驗室成員</b>。</p>
+<label>修練場網址<input id="u" placeholder="https://你的帳號.github.io/pv-quest/"></label>
+<label>實驗室通行碼<input id="p" type="password"></label><button onclick="mk()">產生 QR code</button>
+<div id="qr"></div><p id="link"></p></div>
+
+<div class="box"><h3>② 更換通行碼（例如學期結束、成員異動、QR 外流）</h3>
+<ol style="font-size:14px"><li>輸入目前的通行碼與新通行碼，按「產生新的 content.enc.js」。</li>
+<li>瀏覽器會下載一個新的 <code>content.enc.js</code>。</li>
+<li>到 GitHub repo 用「Add file → Upload files」上傳它，覆蓋舊檔並 Commit。</li>
+<li>幾分鐘後舊通行碼失效，學生下次開啟時會被要求輸入新通行碼。記得重新產生 QR code。</li></ol>
+<label>目前的通行碼<input id="old" type="password"></label>
+<label>新的通行碼（至少 8 個字元，建議英數混合）<input id="nw" type="password"></label>
+<label>再輸入一次新的通行碼<input id="nw2" type="password"></label>
+<button onclick="rekey()">產生新的 content.enc.js</button> <span id="rk"></span></div>
+
+<script src="content.enc.js"></script>
+<script>
+document.getElementById('u').value = location.href.replace(/teacher\.html.*$/, '');
+function mk(){ const u=document.getElementById('u').value.trim(), p=document.getElementById('p').value.trim(); if(!u||!p) return alert('網址和通行碼都要填');
+ const url=u+(u.includes('#')?'&':'#')+'t='+encodeURIComponent(p.normalize('NFKC')); const q=document.getElementById('qr'); q.innerHTML='';
+ if (!window.QRCode) { q.textContent='（QR 函式庫載入失敗，請檢查網路；也可把下方連結貼到任何 QR code 產生器）'; }
+ else new QRCode(q,{text:url,width:260,height:260,correctLevel:QRCode.CorrectLevel.M});
+ document.getElementById('link').innerHTML='連結：<code>'+url.replace(/[<>&]/g,'')+'</code><br>（右鍵另存 QR 圖片，可放進投影片或實驗室群組公告）'; }
+
+const b64d = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+const b64e = u => btoa(String.fromCharCode(...u));
+async function keyFrom(pw, salt, iter, use){ const base=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw.normalize('NFKC').trim()),'PBKDF2',false,['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:iter,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,[use]); }
+async function rekey(){
+  const out=document.getElementById('rk'); const P=window.PVQ_PAYLOAD;
+  const o=document.getElementById('old').value, n=document.getElementById('nw').value, n2=document.getElementById('nw2').value;
+  if(!P){ out.innerHTML='<span class="bad">找不到 content.enc.js（這個頁面要放在和 index.html 同一個資料夾）</span>'; return; }
+  if(n.trim().length<8){ out.innerHTML='<span class="bad">新通行碼太短</span>'; return; }
+  if(n!==n2){ out.innerHTML='<span class="bad">兩次輸入的新通行碼不同</span>'; return; }
+  out.textContent='處理中…';
+  let plain;
+  try{ const k=await keyFrom(o,b64d(P.salt),P.iter,'decrypt'); plain=await crypto.subtle.decrypt({name:'AES-GCM',iv:b64d(P.iv)},k,b64d(P.ct)); }
+  catch(e){ out.innerHTML='<span class="bad">目前的通行碼不正確</span>'; return; }
+  const salt=crypto.getRandomValues(new Uint8Array(16)), iv=crypto.getRandomValues(new Uint8Array(12));
+  const k2=await keyFrom(n,salt,P.iter,'encrypt'); const ct=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},k2,plain));
+  let bin=''; for(let i=0;i<ct.length;i+=8192) bin+=String.fromCharCode.apply(null, ct.subarray(i,i+8192));
+  const np={salt:b64e(salt),iv:b64e(iv),iter:P.iter,ct:btoa(bin)};
+  const txt='/* 太陽電池修練場：加密的章節內容（沒有通行碼無法閱讀）。換通行碼請用 teacher.html。 */\nwindow.PVQ_PAYLOAD = '+JSON.stringify(np)+';\n';
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([txt],{type:'text/javascript'})); a.download='content.enc.js'; a.click();
+  out.innerHTML='<span class="ok">✅ 已下載新的 content.enc.js，請上傳到 GitHub 覆蓋舊檔。</span>';
+}
+</script></body></html>

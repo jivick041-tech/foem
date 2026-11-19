@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>太陽電池修練場 · PV Quest</title>
+<title>FOEM 修練場｜明志科大材料系 黃裕清老師實驗室</title>
 <link rel="stylesheet" href="katex/katex.min.css">
 <script defer src="katex/katex.min.js"></script>
 <script defer src="katex/contrib/auto-render.min.js"></script>
@@ -182,9 +182,9 @@ table.data th{background:#f8f5ec}
 <!-- ===================== 入場門票 ===================== -->
 <div id="gate">
   <div class="gatebox">
-    <div style="font-size:44px">☀️🔑</div>
-    <h1>太陽電池修練場</h1>
-    <div class="sub">PV Quest · 實驗室內部學習資源（僅限本實驗室成員）</div>
+    <div style="font-size:44px">⚛️🔑</div>
+    <h1>FOEM 修練場</h1>
+    <div class="sub">明志科大材料系 黃裕清老師實驗室（FOEM）<br>半導體・光電・能源元件學習基地｜僅限實驗室成員</div>
 
     <div id="stepTicket">
       <div class="ticket">🎫 <b>第一步：出示入場券</b><br>請輸入實驗室通行碼，或直接掃描老師發的 QR code 進入。沒有通行碼就打不開內容（內容已加密）。</div>
@@ -209,7 +209,7 @@ table.data th{background:#f8f5ec}
 <div id="app" class="hidden">
   <div class="stick">
   <header class="top">
-    <div class="brand">☀️ 太陽電池<span>修練場</span></div>
+    <div class="brand">⚛️ FOEM <span>修練場</span></div>
     <div class="player">
       <span id="pName"></span>
       <span class="lv" id="pLv">Lv1</span>
@@ -244,7 +244,7 @@ const PAYLOAD = window.PVQ_PAYLOAD || {};
 <script>
 "use strict";
 /* ============================================================
-   太陽電池修練場 engine
+   FOEM 修練場 engine
    ============================================================ */
 const CH = [];            // chapters (filled after decrypt)
 const GLOSS = [];         // glossary entries
@@ -467,7 +467,13 @@ function viewMap(V) {
   V.innerHTML = `<div class="welcome"><h2>歡迎回來，${esc(S.nick || S.name)}！</h2>
     <div>目前稱號：<b style="color:#fbbf24">${L.title}</b>　🔥 連續修練 ${streak()} 天　🃏 科學家卡 ${(S.cards||[]).length}/${CARDS.length}${T ? '　🎓 資質：' + T.e + ' ' + T.n : ''}</div>
     <div class="muted" style="color:#94a3b8;font-size:14px;margin-top:4px">路線：先修「基本知識」打好半導體地基，再進入「進階知識」學太陽電池。每關：讀觀念 → 過節點小測驗 → 練計算題 → 挑戰魔王，擊敗魔王才會開啟下一關${CONFIG.FREE_ROAM ? '（老師已開放自由探索，所有關卡都能進入）' : ''}。</div></div>
-    <div id="zones"></div>`;
+    <div class="card" style="margin-top:14px;background:linear-gradient(135deg,#fff7e6,#fffdf8)"><div class="muted" style="font-size:13px;font-weight:700">📚 目前開放的課程</div>
+      <h3 style="margin:2px 0">課程一：半導體元件與太陽電池</h3>
+      <div class="muted" style="font-size:14px">主要教材：J. Nelson《The Physics of Solar Cells》（中譯本），並整合 P. Würfel《Physics of Solar Cells》與 S. Fonash《Solar Cell Device Physics》。分為「基本知識」與「進階知識」兩區。</div></div>
+    <div id="zones"></div>
+    <div class="card" style="opacity:.8"><div class="muted" style="font-size:13px;font-weight:700">🔮 籌備中的課程</div>
+      <div style="font-size:15px">LED 與光偵測器・MOS 元件與界面・更多 FOEM 研究主題……敬請期待！</div></div>
+    <div style="text-align:center;color:#64748b;font-size:12px;margin:18px 0">FOEM 修練場 · 明志科大材料系 黃裕清老師實驗室 · 實驗室內部教學資源，請勿外流</div>`;
   const Z = $('#zones', V);
   ['basic', 'adv'].forEach(pk => {
     const P = PARTS[pk], list = CH.filter(c => c.part === pk);

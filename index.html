@@ -98,6 +98,8 @@ h2,h3,h4{line-height:1.35}
 .sec.form{border-color:#0891b2} .sec.form>.h{color:#0e7490}
 .sec.ext{border-color:#db2777} .sec.ext>.h{color:#be185d}
 .sec.quiz{border-color:var(--green)} .sec.quiz>.h{color:var(--green)}
+.fig{margin:8px 0 14px;text-align:center} .fig canvas{width:100%;max-width:620px;display:block;margin:0 auto} .fig svg{max-width:100%;height:auto} .fig figcaption{font-size:13px;color:#475569;margin-top:4px;text-align:left;max-width:620px;margin-left:auto;margin-right:auto} .sec.figs{border-color:#0ea5e9} .sec.figs>.h{color:#0369a1} .fx2{margin-top:5px;font-size:14.5px}
+#aifab{position:fixed;right:18px;bottom:18px;width:56px;height:56px;border-radius:50%;border:none;background:linear-gradient(135deg,#6366f1,#0ea5e9);color:#fff;font-size:28px;box-shadow:0 6px 18px rgba(0,0,0,.3);cursor:pointer;z-index:50;display:none} body.in #aifab{display:block} .sec.aibox{border-color:#6366f1} .sec.aibox>summary.h{color:#4338ca;cursor:pointer} .aians{background:#f5f3ff;border-radius:10px;padding:10px} .aiq{font-weight:700;margin-bottom:6px} .aia{line-height:1.75}
 .sec.derive{border-color:#7c3aed} .sec.derive>summary.h{color:#6d28d9;cursor:pointer}
 .dtab{border-collapse:collapse;font-size:14px;margin:8px 0} .dtab td,.dtab th{border:1px solid #e5e7eb;padding:3px 8px;text-align:right} .dtab th{background:#f3f4f6}
 .dplot{width:100%;max-width:560px;height:260px;display:block;margin:6px 0}
@@ -237,10 +239,11 @@ table.data th{background:#f8f5ec}
 </div>
 
 <div id="toast"></div>
+<button id="aifab" title="問 AI" onclick="aiGlobal()">🤖</button>
 <div id="modal" class="hidden"><div class="box" id="modalBox"></div></div>
 
 <script src="config.js"></script>
-<script src="content.enc.js?v=f2377718d4"></script>
+<script src="content.enc.js?v=f7860f99f6"></script>
 <script>
 /* 設定在 config.js（老師可直接在 GitHub 網頁上編輯）；加密內容在 content.enc.js */
 const CONFIG = Object.assign({ API: '', ROSTER: false, FREE_ROAM: false, BOSS_REQ: 0.6 }, window.PVQ_CONFIG || {});
@@ -441,6 +444,7 @@ const BADGES = [
   { id: 'perfect', e: '💯', n: '滿分手速', d: '每日挑戰 5 題全對', f: () => Object.values(S.daily || {}).some(x => x.correct === 5) },
   { id: 'duel1', e: '🤺', n: '初次對決', d: '完成第一場對戰', f: () => Object.keys(S.duelSeen || {}).length >= 1 },
   { id: 'win5', e: '🏆', n: '擂台霸主', d: '對戰贏 5 場', f: () => (S.duelWins || 0) >= 5 },
+  { id: 'ai1', e: '🤖', n: '勇於發問', d: '第一次用「問 AI」整理問題', f: () => (S.aiN || 0) >= 1 },
   { id: 'cards6', e: '🃏', n: '科學家收藏家', d: '收集 6 張科學家卡', f: () => (S.cards || []).length >= 6 },
   { id: 'cardsall', e: '🏛️', n: '名人堂', d: '收集全部科學家卡', f: () => CARDS.length && (S.cards || []).length >= CARDS.length },
 ];
@@ -591,8 +595,9 @@ function renderConcept(c, k, i) {
   const fm = (k.formulas || []).map(f => formulaCard(f)).join('');
   det.innerHTML = `<summary><span class="pill ${S.concept[k.id] ? 'green' : 'gray'}">${S.concept[k.id] ? '已通過' : '節點 ' + k.id}</span> ${esc(k.title)}</summary>
     ${sec('plain', '🍼 白話說明（零基礎也看得懂）', k.plain)}
+    ${k.figs ? `<div class="sec figs"><div class="h">🖼️ 圖解</div>${k.figs.map((f, j) => `<figure class="fig" data-j="${j}">${f.svg ? f.svg : `<canvas class="fplot" style="height:${f.h || 240}px"></canvas>`}${f.cap ? `<figcaption>${f.cap}</figcaption>` : ''}</figure>`).join('')}</div>` : ''}
     ${sec('pre', '🔑 先備知識：讀這個觀念前要知道的事', pre)}
-    ${sec('deep', '🔬 觀念解析', k.deep)}
+    ${sec('deep', '🔬 專業說明（定義、物理圖像、假設與適用範圍）', k.deep)}
     ${sec('form', '🧾 重要公式與它的內涵', fm)}
     ${k.derive ? `<details class="sec derive"><summary class="h">✏️ 推導（碩士進階，專題生可先跳過）</summary>${k.derive.map((st, j) => `<div class="step"><div class="sh">第 ${j + 1} 步｜${st.h}</div><div>${st.c}</div></div>`).join('')}</details>` : ''}
     ${k.terms ? sec('pre', '🔤 英文術語（讀論文必備）', '<table class="data" style="width:100%">' + k.terms.map(t => `<tr><td style="white-space:nowrap"><b>${t[0]}</b></td><td style="white-space:nowrap">${t[1]}</td><td>${t[2] || ''}</td></tr>`).join('') + '</table>') : ''}
@@ -600,9 +605,12 @@ function renderConcept(c, k, i) {
     ${frontierFor(k.id)}
     ${k.src ? `<div class="srcline">📚 ${k.src}</div>` : ''}
     <div class="sec quiz"><div class="h">✅ 節點小測驗（全部答對即通過節點）</div><div class="qz"></div></div>
+    ${aiBox(c, k)}
     <div class="rate"><span>這個觀念我懂了多少？</span><span class="stars"></span>
       <textarea placeholder="（選填）哪裡看不懂？想問老師什麼？"></textarea><button class="btn small">送出自評</button></div>`;
-  const qz = $('.qz', det);
+  const qz = $('.qz', det); bindAiBox(det, c, k);
+  if (k.figs) { const draw = () => k.figs.forEach((f, j) => { if (!f.plot) return; const cv = $(`figure[data-j="${j}"] canvas`, det); if (cv && cv.clientWidth) plot(cv, buildPlot(f.plot)); });
+    det.addEventListener('toggle', () => { if (det.open) requestAnimationFrame(draw); }); if (det.open) setTimeout(draw, 60); }
   (k.quiz || []).forEach((q, j) => qz.appendChild(renderQ(q, `${k.id}#${j}`, { ch: c.id, concept: k, chapter: c })));
   // rating
   const stars = $('.stars', det); let r = S.rating[k.id] ? S.rating[k.id].r : 0;
@@ -623,7 +631,19 @@ function formulaCard(f) {
   return `<div class="fcard"><div class="fn">📐 ${f.name || ''}</div><div>$$${f.tex}$$</div>
     ${f.meaning ? `<div>💡 <b>它在說什麼：</b>${f.meaning}</div>` : ''}
     ${f.symbols ? `<table>${f.symbols.map(s => `<tr><td>$${s[0]}$</td><td>${s[1]}</td><td class="muted">${s[2] || ''}</td></tr>`).join('')}</table>` : ''}
+    ${f.assume ? `<div class="fx2"><b>📌 成立條件與近似：</b>${f.assume}</div>` : ''}
+    ${f.limits ? `<div class="fx2"><b>🔭 極限情況／特例：</b>${f.limits}</div>` : ''}
+    ${f.typical ? `<div class="fx2"><b>🔢 典型數值：</b>${f.typical}</div>` : ''}
+    ${f.units ? `<div class="fx2"><b>📏 單位檢查：</b>${f.units}</div>` : ''}
+    ${f.pitfall ? `<div class="fx2"><b>⚠️ 常見誤解：</b>${f.pitfall}</div>` : ''}
     ${f.tip ? `<div style="margin-top:6px">🧭 <b>使用時機／注意：</b>${f.tip}</div>` : ''}</div>`;
+}
+// 圖解：由函數產生曲線（保證與公式一致）
+function buildPlot(P) {
+  const cfg = Object.assign({}, P);
+  cfg.series = (P.series || []).map(sr => { if (sr.pts) return sr; const [a, b] = sr.x || P.x, n = sr.n || 300, pts = [];
+    for (let i = 0; i <= n; i++) { const x = a + (b - a) * i / n; let y; try { y = sr.f(x); } catch (e) { y = NaN; } pts.push([x, y]); } return Object.assign({}, sr, { pts }); });
+  return cfg;
 }
 
 /* ---------------- quiz items ---------------- */
@@ -1240,6 +1260,60 @@ async function viewArena(V) {
 function dailyStreak() { const D = S.daily || {}; let n = 0; const d = new Date(); if (!D[nowDay()]) d.setDate(d.getDate() - 1);
   for (;;) { const k = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); if (!D[k]) break; n++; d.setDate(d.getDate() - 1); } return n; }
 
+/* ---------------- 🤖 問 AI（學生用自己的 AI 帳號） ---------------- */
+const stripHTML = h => { const d = document.createElement('div'); d.innerHTML = String(h || ''); return d.textContent.replace(/\s+/g, ' ').trim(); };
+const AI_SITES = [['Claude', 'https://claude.ai/new'], ['ChatGPT', 'https://chatgpt.com/'], ['Gemini', 'https://gemini.google.com/app']];
+function aiContextFor(c, k) {
+  if (!c) return '';
+  let t = `${COURSES[c.course].no}｜${c.label}「${c.title}」`;
+  if (k) t += `\n觀念 ${k.id}「${k.title}」\n白話說明：${stripHTML(k.plain)}\n專業說明：${stripHTML(k.deep)}\n相關公式：${(k.formulas || []).map(f => f.name + '：' + f.tex).join('；')}`;
+  else t += '\n本章觀念：' + c.concepts.map(x => x.id + ' ' + x.title).join('；');
+  return t.slice(0, 3500);
+}
+function aiPrompt(question, where, context) {
+  return `你是一位耐心又嚴謹的助教。我是材料系的學生（大學專題生／碩士生），正在學習「${where}」。
+${context ? '\n以下是課程對這部分的說明，請參考並與它一致：\n"""\n' + context + '\n"""\n' : ''}
+我的問題：${question}
+
+請用繁體中文回答：
+1. 先用兩三句白話講直覺；
+2. 再給專業、正確的說明（定義、物理圖像、公式的成立條件與適用範圍）；
+3. 指出常見誤解；
+4. 如果是計算題，給我思路與第一步，讓我自己算完，不要直接給最終答案；
+5. 不確定的地方請直說，不要編造數據或文獻。`;
+}
+async function aiGo(question, where, cid, context, out) {
+  question = (question || '').trim(); if (!question) return toast('請先輸入問題');
+  const prompt = aiPrompt(question, where, context);
+  let copied = false; try { await navigator.clipboard.writeText(prompt); copied = true; } catch (e) {}
+  Rec.send('ask_q', { item: cid || '', comment: question.slice(0, 500), ch: where.slice(0, 60) });
+  S.aiN = (S.aiN || 0) + 1; save(); checkBadges();
+  out.innerHTML = `<div class="aians">${copied ? '✅ 已把「問題＋這個觀念的課程內容」複製好了。' : '請先複製下方文字：'} 選一個你常用的 AI，打開後在對話框<b>貼上（Ctrl+V）</b>送出即可：
+    <div style="margin:8px 0">${AI_SITES.map(([n, u]) => `<a class="btn small" href="${u}" target="_blank" rel="noopener" style="margin:2px">開啟 ${n}</a>`).join('')}</div>
+    <details${copied ? '' : ' open'}><summary class="muted" style="font-size:13px">看／手動複製要貼上的文字</summary><textarea readonly style="width:100%;min-height:140px;font-size:13px;border:1px solid var(--line);border-radius:8px;padding:6px">${esc(prompt)}</textarea></details>
+    <div class="muted" style="font-size:12px;margin-top:6px">⚠️ AI 的回答可能有錯，重要結論請對照課本、公式卡或問老師。你的問題（不含 AI 回答）會記錄給老師，幫助老師知道大家卡在哪裡。</div></div>`;
+}
+function aiBox(c, k) {
+  const id = 'ai_' + cssId(k ? k.id : 'c' + c.id);
+  return `<details class="sec aibox" id="${id}"><summary class="h">🤖 有不懂的地方？問 AI</summary>
+    <div class="muted" style="font-size:13px">輸入問題後，系統會把「你的問題＋這個觀念的課程內容＋回答要求」整理好並複製，你再貼到自己的 Claude、ChatGPT 或 Gemini，答案會更貼近課程。</div>
+    <textarea placeholder="例如：為什麼順偏壓時空乏區會變窄？Tafel 斜率要在哪一段取？" style="width:100%;min-height:60px;border:1.5px solid var(--line);border-radius:10px;padding:8px;margin-top:6px"></textarea>
+    <button class="btn small">整理並複製問題</button><div class="aiout" style="margin-top:8px"></div></details>`;
+}
+function bindAiBox(root, c, k) {
+  const box = $('.aibox', root); if (!box) return;
+  $('button', box).onclick = () => aiGo($('textarea', box).value, `${COURSES[c.course].no} ${c.label}「${c.title}」${k ? ' 觀念 ' + k.id + '「' + k.title + '」' : ''}`, k ? k.id : '', aiContextFor(c, k), $('.aiout', box));
+}
+function aiGlobal() {
+  if (typeof ARENA !== 'undefined' && ARENA.playing) return toast('對戰中不能使用喔！');
+  let c = null, k = null;
+  if (curView === 'chapter') { c = CH.find(x => x.id === curCh); const open = $$('details.concept[open]'); if (c && open.length) { const id = open[open.length - 1].id.replace(/^cc_/, ''); k = c.concepts.find(x => cssId(x.id) === id) || null; } }
+  modal(`<div style="text-align:left"><h3 style="margin:0">🤖 問 AI</h3><div class="muted" style="font-size:13px">${c ? '目前位置：' + esc(c.label + '「' + c.title + '」' + (k ? ' 觀念 ' + k.id : '')) + '（會一併附上這部分的課程內容）' : '可以問任何課程、實驗或文獻閱讀相關的問題。'}</div>
+    <textarea id="aigq" style="width:100%;min-height:80px;border:1.5px solid var(--line);border-radius:10px;padding:8px;margin-top:6px" placeholder="輸入你的問題…"></textarea>
+    <button class="btn" id="aigo">整理並複製問題</button> <button class="btn ghost" onclick="closeModal()">關閉</button><div id="aigout" style="margin-top:10px"></div></div>`);
+  $('#aigo').onclick = () => aiGo($('#aigq').value, c ? `${COURSES[c.course].no} ${c.label}「${c.title}」${k ? ' 觀念 ' + k.id + '「' + k.title + '」' : ''}` : 'FOEM 實驗室的課程（半導體、太陽電池、電化學）', k ? k.id : '', aiContextFor(c, k), $('#aigout'));
+}
+
 /* ---------------- me ---------------- */
 function viewMe(V) {
   const L = levelOf(S.xp);
@@ -1295,24 +1369,48 @@ function viewTools(V) {
 function plot(cv, cfg) {
   const dpr = window.devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight;
   cv.width = W * dpr; cv.height = H * dpr; const g = cv.getContext('2d'); g.scale(dpr, dpr);
-  const m = { l: 58, r: cfg.r2 ? 58 : 14, t: 14, b: 40 };
+  const m = { l: 58, r: cfg.r2 ? 58 : 16, t: cfg.yl ? 26 : 14, b: 40 };
   const [x0, x1] = cfg.x, [y0, y1] = cfg.y;
   const X = x => m.l + (x - x0) / (x1 - x0) * (W - m.l - m.r);
   const Y = y => H - m.b - (y - y0) / (y1 - y0) * (H - m.t - m.b);
   g.clearRect(0, 0, W, H); g.font = '12px sans-serif'; g.strokeStyle = '#e5e7eb'; g.fillStyle = '#6b7280'; g.lineWidth = 1;
   const nice = (a, b, n) => { const s = Math.pow(10, Math.floor(Math.log10((b - a) / n))); const k = [1, 2, 5, 10].find(k => (b - a) / (s * k) <= n) * s; const out = []; for (let v = Math.ceil(a / k) * k; v <= b + 1e-9; v += k) out.push(+v.toFixed(10)); return out; };
-  nice(x0, x1, 8).forEach(v => { g.beginPath(); g.moveTo(X(v), m.t); g.lineTo(X(v), H - m.b); g.stroke(); g.fillText(cfg.xfmt ? cfg.xfmt(v) : v, X(v) - 8, H - m.b + 15); });
-  nice(y0, y1, 6).forEach(v => { g.beginPath(); g.moveTo(m.l, Y(v)); g.lineTo(W - m.r, Y(v)); g.stroke(); g.fillText(cfg.yfmt ? cfg.yfmt(v) : v, 4, Y(v) + 4); });
-  g.fillStyle = '#111827'; g.fillText(cfg.xl || '', W / 2 - 30, H - 6);
-  g.save(); g.translate(12, m.t + 4); g.fillText(cfg.yl || '', 0, 0); g.restore();
+  nice(x0, x1, 8).forEach(v => { g.beginPath(); g.moveTo(X(v), m.t); g.lineTo(X(v), H - m.b); g.stroke(); const t = String(cfg.xfmt ? cfg.xfmt(v) : v), w = g.measureText(t).width; g.fillText(t, Math.min(W - w - 2, Math.max(2, X(v) - w / 2)), H - m.b + 15); });
+  nice(y0, y1, 6).forEach(v => { g.beginPath(); g.moveTo(m.l, Y(v)); g.lineTo(W - m.r, Y(v)); g.stroke(); const t = String(cfg.yfmt ? cfg.yfmt(v) : v); g.fillText(t, m.l - 6 - g.measureText(t).width, Y(v) + 4); });
+  g.fillStyle = '#111827'; { const t = cfg.xl || '', w = g.measureText(t).width; g.fillText(t, m.l + (W - m.l - m.r - w) / 2, H - 6); }
+  g.fillText(cfg.yl || '', 6, 15);
+  // label placement with collision avoidance, kept inside plot box
+  const boxes = [];
+  const put = (t, x, y, col, font) => {
+    if (!t) return; g.font = font || '12px sans-serif'; g.fillStyle = col; const w = g.measureText(t).width, h = 13;
+    x = Math.min(W - m.r - w - 2, Math.max(m.l + 2, x));
+    const yc = v => Math.min(H - m.b - 3, Math.max(m.t + h, v));
+    let yy = yc(y);
+    const hit = v => boxes.some(b => x < b.x + b.w && x + w > b.x && v - h < b.y && v > b.y - b.h);
+    for (const d of [0, 14, -14, 28, -28, 42, -42]) { const v = yc(y + d); if (!hit(v)) { yy = v; break; } }
+    boxes.push({ x, y: yy, w, h }); g.fillText(t, x, yy); g.font = '12px sans-serif';
+  };
+  (cfg.rects || []).forEach(r => { g.fillStyle = r.c; g.fillRect(X(r.x0), Y(r.y1), X(r.x1) - X(r.x0), Y(r.y0) - Y(r.y1)); });
+  g.save(); g.beginPath(); g.rect(m.l, m.t, W - m.l - m.r, H - m.t - m.b); g.clip();
   (cfg.series || []).forEach(s => {
     g.strokeStyle = s.c || '#2563eb'; g.lineWidth = s.w || 2.2; g.setLineDash(s.dash || []); g.beginPath();
     let st = false; s.pts.forEach(([x, y]) => { if (!isFinite(y)) { st = false; return; } const yy = Math.max(y0 - (y1 - y0), Math.min(y1 + (y1 - y0), y)); if (!st) { g.moveTo(X(x), Y(yy)); st = true; } else g.lineTo(X(x), Y(yy)); });
     g.stroke(); g.setLineDash([]);
-    if (s.label) { g.fillStyle = s.c || '#2563eb'; const p = s.pts[s.lp || Math.floor(s.pts.length * 0.7)]; if (p && isFinite(p[1])) g.fillText(s.label, X(p[0]) + 4, Y(p[1]) - 6); }
   });
-  (cfg.dots || []).forEach(dt => { g.fillStyle = dt.c || '#ef4444'; g.beginPath(); g.arc(X(dt.x), Y(dt.y), 5, 0, 7); g.fill(); if (dt.label) g.fillText(dt.label, X(dt.x) + 7, Y(dt.y) - 7); });
-  (cfg.rects || []).forEach(r => { g.fillStyle = r.c; g.fillRect(X(r.x0), Y(r.y1), X(r.x1) - X(r.x0), Y(r.y0) - Y(r.y1)); });
+  (cfg.vlines || []).forEach(l => { g.strokeStyle = l.c || '#9ca3af'; g.setLineDash(l.dash || [4, 4]); g.lineWidth = 1.2; g.beginPath(); g.moveTo(X(l.x), m.t); g.lineTo(X(l.x), H - m.b); g.stroke(); g.setLineDash([]); });
+  (cfg.hlines || []).forEach(l => { g.strokeStyle = l.c || '#9ca3af'; g.setLineDash(l.dash || [4, 4]); g.lineWidth = 1.2; g.beginPath(); g.moveTo(m.l, Y(l.y)); g.lineTo(W - m.r, Y(l.y)); g.stroke(); g.setLineDash([]); });
+  (cfg.dots || []).forEach(dt => { g.fillStyle = dt.c || '#ef4444'; g.beginPath(); g.arc(X(dt.x), Y(dt.y), 5, 0, 7); g.fill(); });
+  g.restore();
+  (cfg.texts || []).forEach(t => put(t.t, X(t.x), Y(t.y), t.c || '#111827', (t.b ? 'bold ' : '') + (t.s || 12) + 'px sans-serif'));
+  (cfg.dots || []).forEach(dt => dt.label && put(dt.label, X(dt.x) + 7, Y(dt.y) - 7, dt.c || '#ef4444'));
+  (cfg.vlines || []).forEach(l => l.label && put(l.label, X(l.x) + 3, m.t + 12, l.c || '#6b7280'));
+  (cfg.hlines || []).forEach(l => { if (!l.label) return; g.font = '12px sans-serif'; put(l.label, W - m.r - g.measureText(l.label).width - 2, Y(l.y) - 4, l.c || '#6b7280'); });
+  (cfg.series || []).forEach(s => {
+    if (!s.label) return; let i = s.lp != null ? s.lp : Math.floor(s.pts.length * 0.7);
+    const inR = p => p && isFinite(p[1]) && p[1] >= y0 && p[1] <= y1;
+    if (!inR(s.pts[i])) { let best = -1; s.pts.forEach((p, j) => { if (inR(p) && (best < 0 || Math.abs(j - i) < Math.abs(best - i))) best = j; }); if (best >= 0) i = best; }
+    const p = s.pts[i]; if (p && isFinite(p[1])) put(s.label, X(p[0]) + 4, Y(Math.max(y0, Math.min(y1, p[1]))) - 6, s.c || '#2563eb');
+  });
 }
 function slider(id, label, min, max, step, val, fmt) {
   return `<label>${label}：<b id="${id}_v"></b><input type="range" id="${id}" min="${min}" max="${max}" step="${step}" value="${val}" data-fmt="${fmt || ''}"></label>`;
@@ -1677,7 +1775,7 @@ async function doLogin(sid, name, nick, silent) {
   S = LS.get(KEYP + 'st_' + sid, null) || blankState(sid, name);
   S.name = name; if (nick) S.nick = nick;
   LS.set(KEYP + 'who', { sid, name, nick: S.nick });
-  $('#gate').classList.add('hidden'); $('#app').classList.remove('hidden');
+  $('#gate').classList.add('hidden'); $('#app').classList.remove('hidden'); document.body.classList.add('in');
   Rec.init();
   const today = nowDay(), newDay = !S.days.includes(today);
   if (newDay) S.days.push(today);

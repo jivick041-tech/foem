@@ -26,6 +26,7 @@ button{background:#f59e0b;border:0;border-radius:9px;padding:10px 18px;font-weig
 <label>再輸入一次新的通行碼<input id="nw2" type="password"></label>
 <button onclick="rekey()">產生新的 content.enc.js</button> <span id="rk"></span></div>
 
+<script src="config.js"></script>
 <script src="content.enc.js"></script>
 <script>
 document.getElementById('u').value = location.href.replace(/teacher\.html.*$/, '');
@@ -55,6 +56,9 @@ async function rekey(){
   const np={salt:b64e(salt),iv:b64e(iv),iter:P.iter,ct:btoa(bin)};
   const txt='/* FOEM 修練場：加密的課程內容（沒有通行碼無法閱讀）。換通行碼請用 teacher.html。 */\nwindow.PVQ_PAYLOAD = '+JSON.stringify(np)+';\n';
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([txt],{type:'text/javascript'})); a.download='content.enc.js'; a.click();
-  out.innerHTML='<span class="ok">✅ 已下載新的 content.enc.js，請上傳到 GitHub 覆蓋舊檔。</span>';
+  let msg='✅ 已下載新的 content.enc.js，請上傳到 GitHub 覆蓋舊檔。';
+  try { const h=async t=>[...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode('FOEM-frontier|'+t.normalize('NFKC').trim())))].map(x=>x.toString(16).padStart(2,'0')).join('');
+    const API=(window.PVQ_CONFIG||{}).API; if(API){ await fetch(API,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'setkey',key:await h(n),old:await h(o)})}); msg+='<br>✅ 研究前線金鑰也已同步更新。'; } } catch(e){ msg+='<br>⚠️ 研究前線金鑰更新失敗，請通知管理者。'; }
+  out.innerHTML='<span class="ok">'+msg+'</span>';
 }
 </script></body></html>

@@ -220,6 +220,7 @@ table.data th{background:#f8f5ec}
   </header>
   <nav class="tabs" id="tabs">
     <button data-v="map" class="on">🗺️ 修練地圖</button>
+    <button data-v="frontier">📡 研究前線</button>
     <button data-v="tools">🧪 模擬實驗室</button>
     <button data-v="formulas">📒 公式卡</button>
     <button data-v="glossary">🔤 名詞小辭典</button>
@@ -276,26 +277,48 @@ function loadContent(src) {
   arrange();
 }
 
-/* ---------------- 課程分區：基本知識 / 進階知識 ---------------- */
-const PARTS = {
-  basic: { icon: '🟦', name: '基本知識：半導體元件基礎', desc: '能帶、載子、產生與複合、接面、p-n 結二極體——所有半導體元件共通的地基。' },
-  adv: { icon: '🟧', name: '進階知識：太陽電池', desc: '把半導體基礎用在太陽電池：特性與效率極限、各種電池技術、光學管理與新概念。' }
+/* ---------------- 課程與分區 ---------------- */
+const COURSES = {
+  pv: { no: '課程一', name: '半導體元件與太陽電池', icon: '☀️',
+    src: '主要教材：J. Nelson《The Physics of Solar Cells》（中譯本），並整合 P. Würfel《Physics of Solar Cells》與 S. Fonash《Solar Cell Device Physics》。',
+    parts: { basic: { icon: '🟦', name: '基本知識：半導體元件基礎', desc: '能帶、載子、產生與複合、接面、p-n 結二極體——所有半導體元件共通的地基。' },
+             adv: { icon: '🟧', name: '進階知識：太陽電池', desc: '把半導體基礎用在太陽電池：特性與效率極限、各種電池技術、光學管理與新概念。' } },
+    order: [[0, 'basic'], [3, 'basic'], [4, 'basic'], [5, 'basic'], [6, 'basic'],
+      [1, 'adv'], [2, 'adv'], [7, 'adv'], [8, 'adv'], [9, 'adv'], [10, 'adv'], [11, 'adv'], [12, 'adv'], [13, 'adv']],
+    orig: c => (c.id === 0 || c.bonus) ? '' : 'Nelson 原書第 ' + c.id + ' 章',
+    secs: { math: '數理基礎', semi: '半導體元件', pv: '太陽電池' } },
+  ec: { no: '課程二', name: '電化學與電催化：從基礎到產氫、產氧、產氨', icon: '⚗️',
+    src: '主要教材：A. J. Bard & L. R. Faulkner《Electrochemical Methods》(2nd ed.)、T. ul Haq & Y. Haik《Electrochemical Water Splitting》(2024)，並整合燃料電池電催化、電化學合成氨回顧與水電解產業化回顧論文。',
+    parts: { basic: { icon: '🟦', name: '基本知識：電化學基礎', desc: '電化學池、熱力學、電極動力學、質傳、電雙層與量測技術——讀懂任何電化學論文的地基。' },
+             adv: { icon: '🟧', name: '進階知識：電催化與能源轉換', desc: '電催化原理、產氫 HER、產氧 OER、如何正確評比觸媒、產業電解槽、電化學合成氨，以及太陽電池驅動的光電串接。' } },
+    order: [[100, 'basic'], [101, 'basic'], [102, 'basic'], [103, 'basic'], [104, 'basic'], [105, 'basic'], [106, 'basic'],
+      [107, 'adv'], [108, 'adv'], [109, 'adv'], [110, 'adv'], [111, 'adv'], [112, 'adv'], [113, 'adv']],
+    orig: c => c.ref || '',
+    secs: { chem: '化學與數理', ec: '電化學基礎', cat: '電催化與應用' } }
 };
-// [原書章節 id, 分區]；顯示順序即修練順序
-const ORDER = [[0, 'basic'], [3, 'basic'], [4, 'basic'], [5, 'basic'], [6, 'basic'],
-  [1, 'adv'], [2, 'adv'], [7, 'adv'], [8, 'adv'], [9, 'adv'], [10, 'adv'], [11, 'adv'], [12, 'adv'], [13, 'adv']];
+const CKEYS = ['pv', 'ec'];
 function arrange() {
-  CH.forEach(c => { const k = ORDER.findIndex(o => o[0] === c.id); c.ord = k < 0 ? 99 : k; c.part = k < 0 ? 'adv' : ORDER[k][1]; });
-  CH.sort((a, b) => a.ord - b.ord);
-  let nb = 0, na = 0;
   CH.forEach(c => {
-    if (c.id === 0) c.label = '新手村';
-    else if (c.bonus) c.label = '進階・番外篇';
-    else if (c.part === 'basic') c.label = '基礎 第 ' + (++nb) + ' 關';
-    else c.label = '進階 第 ' + (++na) + ' 關';
-    c.orig = (c.id === 0 || c.bonus) ? '' : 'Nelson 原書第 ' + c.id + ' 章';
+    c.course = c.course || 'pv';
+    const C = COURSES[c.course], k = C.order.findIndex(o => o[0] === c.id);
+    c.ord = CKEYS.indexOf(c.course) * 100 + (k < 0 ? 99 : k); c.part = k < 0 ? 'adv' : C.order[k][1];
+  });
+  CH.sort((a, b) => a.ord - b.ord);
+  CKEYS.forEach(ck => {
+    let nb = 0, na = 0;
+    CH.filter(c => c.course === ck).forEach((c, i) => {
+      if (i === 0) c.label = '新手村';
+      else if (c.bonus) c.label = '進階・番外篇';
+      else if (c.part === 'basic') c.label = '基礎 第 ' + (++nb) + ' 關';
+      else c.label = '進階 第 ' + (++na) + ' 關';
+      c.orig = COURSES[ck].orig(c);
+    });
   });
 }
+const courseCH = ck => CH.filter(c => c.course === ck);
+function getPlace(ck) { return ck === 'pv' ? S.placement : (S.placements || {})[ck]; }
+function setPlace(ck, v) { if (ck === 'pv') S.placement = v; else { S.placements = S.placements || {}; S.placements[ck] = v; } }
+function placeSkipped(ck) { return ck === 'pv' ? S.placementSkipped : (S.pskip || {})[ck]; }
 
 /* ---------------- records to Google Sheet ---------------- */
 const Rec = {
@@ -398,6 +421,9 @@ const BADGES = [
   { id: 'tools', e: '🧪', n: '實驗室常客', d: '用過所有模擬工具', f: () => TOOLS.every(t => S.tools[t.id]) },
   { id: 'rate10', e: '📝', n: '誠實自評', d: '完成 10 次觀念自評', f: () => Object.keys(S.rating).length >= 10 },
   { id: 'cleanwrong', e: '🧹', n: '錯題清零', d: '曾經錯過的題目全部重新答對', f: () => Object.keys(S.wrongEver || {}).length >= 5 && Object.keys(S.wrong).length === 0 },
+  { id: 'hunter', e: '🔎', n: '文獻獵人', d: '投稿的研究前線卡通過老師審核', f: () => FRONT.cards.some(c => c.mine) },
+  { id: 'jc3', e: '📅', n: 'Journal Club 常客', d: '完成 3 次 Journal Club 會前任務', f: () => Object.keys(S.jc || {}).length >= 3 },
+  { id: 'critic', e: '💬', n: '勇於提問', d: '在研究前線留言 5 次', f: () => (S.cmt || 0) >= 5 },
   { id: 'cards6', e: '🃏', n: '科學家收藏家', d: '收集 6 張科學家卡', f: () => (S.cards || []).length >= 6 },
   { id: 'cardsall', e: '🏛️', n: '名人堂', d: '收集全部科學家卡', f: () => CARDS.length && (S.cards || []).length >= CARDS.length },
 ];
@@ -418,12 +444,12 @@ function streak() {
 function chapterDone(c) { return !c.boss || (S.boss[c.id] && S.boss[c.id].win); }
 function unlocked(c) {
   if (CONFIG.FREE_ROAM) return true;
-  const i = CH.indexOf(c);
+  const L = courseCH(c.course), i = L.indexOf(c);
   if (i <= 1) return true;             // 新手村 & 基礎第 1 關永遠開放
-  const tier = S.placement ? S.placement.tier : 0;
+  const P = getPlace(c.course), tier = P ? P.tier : 0;
   if (tier >= 2) return true;                          // 鑑定為進階：全部開放
   if (tier >= 1 && c.part === 'basic') return true;    // 鑑定為基礎：基本知識區全開
-  return !!(chapterDone(CH[i - 1]) || (S.skip && S.skip[c.id]));
+  return !!(chapterDone(L[i - 1]) || (S.skip && S.skip[c.id]));
 }
 function chStats(c) {
   const n = c.concepts.length, d = c.concepts.filter(k => S.concept[k.id]).length;
@@ -438,7 +464,7 @@ function go(v, arg) {
   curView = v;
   $$('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.v === v || (v === 'chapter' && b.dataset.v === 'map')));
   const V = $('#view'); V.innerHTML = '';
-  ({ placement: viewPlacement, map: viewMap, chapter: viewChapter, tools: viewTools, formulas: viewFormulas, glossary: viewGlossary, wrong: viewWrong, hall: viewHall, me: viewMe })[v](V, arg);
+  ({ placement: viewPlacement, frontier: viewFrontier, map: viewMap, chapter: viewChapter, tools: viewTools, formulas: viewFormulas, glossary: viewGlossary, wrong: viewWrong, hall: viewHall, me: viewMe })[v](V, arg);
   typeset(V);
   window.scrollTo(0, 0);
   if (v === 'chapter') { curCh = arg; enterT = Date.now(); history.replaceState(null, '', '#ch=' + arg); }
@@ -462,25 +488,27 @@ document.addEventListener('visibilitychange', () => {
 
 /* ---------------- views: map ---------------- */
 function viewMap(V) {
-  const L = levelOf(S.xp);
-  const T = S.placement ? TIERS[S.placement.tier] : null;
+  const L = levelOf(S.xp), ck = S.course || 'pv', C = COURSES[ck];
+  if (!getPlace(ck) && !placeSkipped(ck) && courseCH(ck).length) return go('placement', ck);
+  const P = getPlace(ck), T = P ? TIERS[P.tier] : null;
   V.innerHTML = `<div class="welcome"><h2>歡迎回來，${esc(S.nick || S.name)}！</h2>
-    <div>目前稱號：<b style="color:#fbbf24">${L.title}</b>　🔥 連續修練 ${streak()} 天　🃏 科學家卡 ${(S.cards||[]).length}/${CARDS.length}${T ? '　🎓 資質：' + T.e + ' ' + T.n : ''}</div>
-    <div class="muted" style="color:#94a3b8;font-size:14px;margin-top:4px">路線：先修「基本知識」打好半導體地基，再進入「進階知識」學太陽電池。每關：讀觀念 → 過節點小測驗 → 練計算題 → 挑戰魔王，擊敗魔王才會開啟下一關${CONFIG.FREE_ROAM ? '（老師已開放自由探索，所有關卡都能進入）' : ''}。</div></div>
-    <div class="card" style="margin-top:14px;background:linear-gradient(135deg,#fff7e6,#fffdf8)"><div class="muted" style="font-size:13px;font-weight:700">📚 目前開放的課程</div>
-      <h3 style="margin:2px 0">課程一：半導體元件與太陽電池</h3>
-      <div class="muted" style="font-size:14px">主要教材：J. Nelson《The Physics of Solar Cells》（中譯本），並整合 P. Würfel《Physics of Solar Cells》與 S. Fonash《Solar Cell Device Physics》。分為「基本知識」與「進階知識」兩區。</div></div>
+    <div>目前稱號：<b style="color:#fbbf24">${L.title}</b>　🔥 連續修練 ${streak()} 天　🃏 科學家卡 ${(S.cards||[]).length}/${CARDS.length}</div></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 4px">${CKEYS.filter(k => courseCH(k).length).map(k => `<button class="btn ${k === ck ? '' : 'ghost'}" style="${k === ck ? '' : 'color:#e2e8f0;border-color:#475569'}" onclick="S.course='${k}';save(false);go('map')">${COURSES[k].icon} ${COURSES[k].no}：${COURSES[k].name}</button>`).join('')}</div>
+    <div class="card" style="margin-top:10px;background:linear-gradient(135deg,#fff7e6,#fffdf8)"><div class="muted" style="font-size:13px;font-weight:700">📚 ${C.no}${T ? '　・　🎓 你的入門鑑定：' + T.e + ' ' + T.n : ''}</div>
+      <h3 style="margin:2px 0">${C.icon} ${C.name}</h3>
+      <div class="muted" style="font-size:14px">${C.src}分為「基本知識」與「進階知識」兩區。每關：讀觀念 → 過節點小測驗 → 練計算題 → 挑戰魔王，擊敗魔王才會開啟下一關${CONFIG.FREE_ROAM ? '（老師已開放自由探索）' : ''}。</div></div>
     <div id="zones"></div>
-    <div class="card" style="opacity:.8"><div class="muted" style="font-size:13px;font-weight:700">🔮 籌備中的課程</div>
-      <div style="font-size:15px">LED 與光偵測器・MOS 元件與界面・更多 FOEM 研究主題……敬請期待！</div></div>
+    <div class="card" style="opacity:.85"><div class="muted" style="font-size:13px;font-weight:700">📡 研究前線</div>
+      <div style="font-size:15px">課程之外，到上方「研究前線」分頁看最新文獻怎麼用到這些基礎觀念，並參加 Journal Club 會前閱讀任務。</div></div>
     <div style="text-align:center;color:#64748b;font-size:12px;margin:18px 0">FOEM 修練場 · 明志科大材料系 黃裕清老師實驗室 · 實驗室內部教學資源，請勿外流</div>`;
   const Z = $('#zones', V);
   ['basic', 'adv'].forEach(pk => {
-    const P = PARTS[pk], list = CH.filter(c => c.part === pk);
+    const PP = C.parts[pk], list = courseCH(ck).filter(c => c.part === pk);
+    if (!list.length) return;
     const doneN = list.filter(c => c.boss && chapterDone(c)).length, bossN = list.filter(c => c.boss).length;
     const sec = document.createElement('div');
-    sec.innerHTML = `<h2 style="color:#fff;margin:22px 0 2px">${P.icon} ${P.name} <span style="font-size:14px;color:#fbbf24">魔王 ${doneN}/${bossN}</span></h2>
-      <div style="color:#94a3b8;font-size:14px;margin-bottom:8px">${P.desc}</div><div class="mapgrid"></div>`;
+    sec.innerHTML = `<h2 style="color:#fff;margin:22px 0 2px">${PP.icon} ${PP.name} <span style="font-size:14px;color:#fbbf24">魔王 ${doneN}/${bossN}</span></h2>
+      <div style="color:#94a3b8;font-size:14px;margin-bottom:8px">${PP.desc}</div><div class="mapgrid"></div>`;
     const mg = $('.mapgrid', sec);
     list.forEach(c => {
       const st = chStats(c), ok = unlocked(c), done = chapterDone(c) && c.boss;
@@ -506,12 +534,13 @@ function skipTo(id) { S.skip = S.skip || {}; S.skip[id] = 1; save(); Rec.send('s
 /* ---------------- views: chapter ---------------- */
 function viewChapter(V, id) {
   const c = CH.find(x => x.id === id); if (!c) return go('map');
+  if (S.course !== c.course) { S.course = c.course; save(false); }
   V.innerHTML = `<button class="btn ghost small" style="color:#fff;border-color:#475569" onclick="go('map')">← 回地圖</button>
   <div class="chhead"><div class="muted" style="color:#fbbf24;font-weight:700">${c.label}</div>
     <h2>${c.icon || ''} ${esc(c.title)}</h2><div class="src">${esc(c.en || '')}</div>
     ${c.story ? `<p style="margin:10px 0 4px">${c.story}</p>` : ''}
     ${c.goals ? `<div style="font-weight:700;margin-top:8px">🎯 本章學完你應該能夠：</div><ul class="goals">${c.goals.map(g => `<li>${g}</li>`).join('')}</ul>` : ''}
-    <div class="src" style="margin-top:8px">📚 對應教材：${c.src || ''}${c.orig ? '<br>📘 本關＝' + c.orig + '（文中提到「第 X 章」時，指的是 Nelson 原書章節）' : ''}</div>
+    <div class="src" style="margin-top:8px">📚 對應教材：${c.src || ''}${c.orig ? '<br>📘 本關＝' + c.orig + (c.course === 'pv' ? '（文中提到「第 X 章」時，指的是 Nelson 原書章節）' : '') : ''}</div>
     <div class="path" id="path"></div></div>
   <div id="concepts"></div><div id="probs"></div><div id="bossArea"></div>`;
   const P = $('#path', V);
@@ -543,7 +572,9 @@ function renderConcept(c, k, i) {
     ${sec('pre', '🔑 先備知識：讀這個觀念前要知道的事', pre)}
     ${sec('deep', '🔬 觀念解析', k.deep)}
     ${sec('form', '🧾 重要公式與它的內涵', fm)}
+    ${k.terms ? sec('pre', '🔤 英文術語（讀論文必備）', '<table class="data" style="width:100%">' + k.terms.map(t => `<tr><td style="white-space:nowrap"><b>${t[0]}</b></td><td style="white-space:nowrap">${t[1]}</td><td>${t[2] || ''}</td></tr>`).join('') + '</table>') : ''}
     ${sec('ext', '🚀 延伸與連結', k.ext)}
+    ${frontierFor(k.id)}
     ${k.src ? `<div class="srcline">📚 ${k.src}</div>` : ''}
     <div class="sec quiz"><div class="h">✅ 節點小測驗（全部答對即通過節點）</div><div class="qz"></div></div>
     <div class="rate"><span>這個觀念我懂了多少？</span><span class="stars"></span>
@@ -594,7 +625,7 @@ function renderQ(q, key, ctx) {
     const wasOk = rec.ok;
     rec.tries++; if (ok) rec.ok = true; S.quiz[key] = rec;
     S.wrongEver = S.wrongEver || {};
-    if (!ok) { S.wrong[key] = { ch: ctx.ch, t: Date.now() }; S.wrongEver[key] = 1; }
+    if (!ok && !/^(F|JC):/.test(key)) { S.wrong[key] = { ch: ctx.ch, t: Date.now() }; S.wrongEver[key] = 1; }
     else if (S.wrong[key]) { delete S.wrong[key]; }
     Rec.send('quiz', { ch: ctx.ch, item: key, correct: ok ? 1 : 0, tries: rec.tries });
     if (ok && !wasOk) addXP(rec.tries === 1 ? 10 : 4, rec.tries === 1 ? '一次答對' : '訂正成功');
@@ -795,13 +826,16 @@ function viewFormulas(V) {
   $('#fs', V).oninput = e => draw(e.target.value.trim()); draw('');
 }
 function viewGlossary(V) {
-  V.innerHTML = `<div class="card"><h2 style="margin:0">🔤 名詞小辭典</h2><div class="muted">中英對照＋一句話白話解釋（台灣用語／中國大陸譯名對照）。</div><input class="search" id="gs" placeholder="搜尋…" style="margin-top:10px"><div id="gl"></div></div>`;
+  V.innerHTML = `<div class="card"><h2 style="margin:0">🔤 名詞小辭典</h2><div class="muted">中英對照＋一句話白話解釋（台灣用語／中國大陸譯名對照）。</div><div style="margin-top:8px" id="gcs"></div><input class="search" id="gs" placeholder="搜尋中文、英文或縮寫…" style="margin-top:8px"><div id="gl"></div></div>`;
+  let gc = S.course || 'pv';
+  const chips = () => { $('#gcs', V).innerHTML = [['all', '全部']].concat(CKEYS.map(k => [k, COURSES[k].no + ' ' + COURSES[k].icon])).map(([k, n]) => `<button class="btn small ${k === gc ? '' : 'ghost'}" data-k="${k}" style="margin:2px">${n}</button>`).join('');
+    $$('#gcs button', V).forEach(b => b.onclick = () => { gc = b.dataset.k; chips(); draw($('#gs', V).value.trim()); }); };
   const draw = kw => {
-    const rows = GLOSS.filter(g => !kw || (g.zh + g.en + (g.cn || '') + g.d).toLowerCase().includes(kw.toLowerCase()));
+    const rows = GLOSS.filter(g => (gc === 'all' || (g.course || 'pv') === gc) && (!kw || (g.zh + g.en + (g.cn || '') + g.d).toLowerCase().includes(kw.toLowerCase())));
     $('#gl', V).innerHTML = `<table class="data" style="width:100%"><tr><th>名詞</th><th>English</th><th>白話解釋</th></tr>${rows.map(g => `<tr><td><b>${g.zh}</b>${g.cn ? `<div class="muted" style="font-size:12px">陸譯：${g.cn}</div>` : ''}</td><td>${g.en}</td><td>${g.d}</td></tr>`).join('')}</table>`;
     typeset($('#gl', V));
   };
-  $('#gs', V).oninput = e => draw(e.target.value.trim()); draw('');
+  $('#gs', V).oninput = e => draw(e.target.value.trim()); chips(); draw('');
 }
 function findQ(key) {
   const [a, j] = key.split('#');
@@ -850,27 +884,28 @@ function showCard(id) { const k = CARDS.find(x => x.id === id); modal(`<div clas
 /* ---------------- 入門資質鑑定（分級測驗） ---------------- */
 const TIERS = [
   { e: '🌱', n: '初心修練者', d: '從「新手村」開始，一步一步把基礎打穩。這不是壞事——地基越穩，後面越好爬！' },
-  { e: '🔷', n: '基礎修練者', d: '你的數理與半導體概念不錯：「基本知識」區全部開放，可挑自己弱的關卡加強；打完基本區魔王後進入「進階知識」。' },
-  { e: '🔶', n: '進階修練者', d: '你已經有半導體與太陽電池的底子：所有關卡全部開放，可以直接挑戰進階知識。仍建議用基本區的魔王戰檢查自己。' }
+  { e: '🔷', n: '基礎修練者', d: '你的基礎概念不錯：「基本知識」區全部開放，可挑自己弱的關卡加強；打完基本區魔王後進入「進階知識」。' },
+  { e: '🔶', n: '進階修練者', d: '你已經有這門課的底子：所有關卡全部開放，可以直接挑戰進階知識。仍建議用基本區的魔王戰檢查自己。' }
 ];
-function placementTier(sec) {
-  const tot = sec.math + sec.semi + sec.pv;
-  if (tot >= 9 && sec.semi >= 3 && sec.pv >= 3) return 2;
-  if (tot >= 6 && sec.semi >= 3) return 1;
+function placementTier(sec, keys) {
+  const v = keys.map(k => sec[k] || 0), tot = v[0] + v[1] + v[2];
+  if (tot >= 9 && v[1] >= 3 && v[2] >= 3) return 2;
+  if (tot >= 6 && v[1] >= 3) return 1;
   return 0;
 }
-function viewPlacement(V) {
-  const qs = PLACEMENT.slice();
+function viewPlacement(V, ck) {
+  ck = ck || S.course || 'pv'; const C = COURSES[ck];
+  const qs = PLACEMENT.filter(q => (q.course || 'pv') === ck);
   let i = -1; const ans = [];
-  const secName = { math: '數理基礎', semi: '半導體元件', pv: '太陽電池' };
+  const secName = C.secs, keys = Object.keys(secName);
   const intro = () => {
-    V.innerHTML = `<div class="card" style="text-align:center"><div class="cardart">🎓</div><h2 style="margin:4px 0">入門資質鑑定</h2>
-      <p>開始修練前，先用 ${qs.length} 題小測驗看看你目前的程度（約 5–8 分鐘），系統會依結果幫你<b>分配修練等級並開放對應的關卡</b>。</p>
-      <p class="muted" style="font-size:14px">題目分三類：數理基礎、半導體元件、太陽電池。不會的題目選「我不知道」就好，不會扣分，誠實作答分級才準。</p>
+    V.innerHTML = `<div class="card" style="text-align:center"><div class="cardart">🎓</div><h2 style="margin:4px 0">${C.no} 入門資質鑑定</h2><div class="muted">${C.icon} ${C.name}</div>
+      <p>開始這門課之前，先用 ${qs.length} 題小測驗看看你目前的程度（約 5–8 分鐘），系統會依結果幫你<b>分配修練等級並開放對應的關卡</b>。</p>
+      <p class="muted" style="font-size:14px">題目分三類：${keys.map(k => secName[k]).join('、')}。不會的題目選「我不知道」就好，不會扣分，誠實作答分級才準。</p>
       <button class="btn" id="pgo">開始鑑定 ▶</button>
-      ${S.placement ? '' : '<div style="margin-top:12px"><button class="btn ghost small" id="pskip">先跳過，直接從新手村開始</button></div>'}</div>`;
+      ${getPlace(ck) ? '' : '<div style="margin-top:12px"><button class="btn ghost small" id="pskip">先跳過，直接從新手村開始</button></div>'}</div>`;
     $('#pgo', V).onclick = () => { i = 0; draw(); };
-    const sk = $('#pskip', V); if (sk) sk.onclick = () => { S.placementSkipped = 1; save(); Rec.send('placement', { score: 'skip' }); go('map'); };
+    const sk = $('#pskip', V); if (sk) sk.onclick = () => { if (ck === 'pv') S.placementSkipped = 1; else { S.pskip = S.pskip || {}; S.pskip[ck] = 1; } save(); Rec.send('placement', { item: ck, score: 'skip' }); go('map'); };
   };
   const draw = () => {
     const q = qs[i];
@@ -887,16 +922,17 @@ function viewPlacement(V) {
     typeset(V);
   };
   const finish = () => {
-    const sec = { math: 0, semi: 0, pv: 0 }, cnt = { math: 0, semi: 0, pv: 0 };
+    const sec = {}, cnt = {}; keys.forEach(k => { sec[k] = 0; cnt[k] = 0; });
     qs.forEach((q, k) => { cnt[q.sec]++; if (ans[k] === q.a) sec[q.sec]++; });
-    const score = sec.math + sec.semi + sec.pv, newTier = placementTier(sec);
-    const prev = S.placement, tier = Math.max(newTier, prev ? prev.tier : 0);
-    S.placement = { tier, score, total: qs.length, sec, t: Date.now() }; save();
-    Rec.send('placement', { score: `${score}/${qs.length}`, level: tier, comment: `數理${sec.math}/${cnt.math} 半導體${sec.semi}/${cnt.semi} 太陽電池${sec.pv}/${cnt.pv}` });
+    const score = keys.reduce((a, k) => a + sec[k], 0), newTier = placementTier(sec, keys);
+    const prev = getPlace(ck), tier = Math.max(newTier, prev ? prev.tier : 0);
+    setPlace(ck, { tier, score, total: qs.length, sec, t: Date.now() }); save();
+    const detail = keys.map(k => `${secName[k]} ${sec[k]}/${cnt[k]}`).join('・');
+    Rec.send('placement', { item: ck, score: `${score}/${qs.length}`, level: tier, comment: detail });
     if (!prev) addXP(score * 5, '入門鑑定');
     const T = TIERS[tier];
     V.innerHTML = `<div class="card" style="text-align:center"><div class="cardart">${T.e}</div><h2 style="margin:4px 0">鑑定結果：${T.n}</h2>
-      <p>答對 <b>${score}</b> / ${qs.length}　（數理 ${sec.math}/${cnt.math}・半導體 ${sec.semi}/${cnt.semi}・太陽電池 ${sec.pv}/${cnt.pv}）</p>
+      <p>答對 <b>${score}</b> / ${qs.length}　（${detail}）</p>
       <p style="text-align:left">${T.d}</p>${prev && newTier < prev.tier ? '<p class="muted">（這次結果比上次低，已保留你之前開放的關卡。）</p>' : ''}
       <button class="btn" onclick="go('map')">前往修練地圖 ▶</button></div>
       <div class="card"><h3 style="margin-top:0">📝 解答與說明</h3>${qs.map((q, k) => `<div class="q"><div class="qt">${k + 1}. ${q.q}</div>
@@ -907,12 +943,137 @@ function viewPlacement(V) {
   intro();
 }
 
+/* ---------------- 📡 研究前線（文獻卡 + Journal Club） ---------------- */
+const FRONT = { cards: [], jc: [], comments: [], loaded: false, err: '' };
+const TOPICS = { SOLAR: '☀️ 太陽能驅動', HER: '💧 產氫 HER', OER: '🫧 產氧 OER', OWS: '⚡ 全水分解', NH3: '🌱 產氨', CO2: '🍃 CO₂ 捕捉／還原', METHOD: '📏 方法與規範' };
+const FTAGS = { '共識': '✅ 已有共識', '新提出': '🔬 新提出', '爭議': '⚠️ 有爭議' };
+async function sha256hex(t) { const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join(''); }
+async function frontierKey() { const t = LS.get(KEYP + 'ticket', ''); return sha256hex('FOEM-frontier|' + String(t).normalize('NFKC').trim()); }
+async function loadFrontier() {
+  if (!CONFIG.API) { FRONT.err = '老師尚未設定紀錄伺服器'; return; }
+  const key = await frontierKey();
+  let r = await apiGet({ action: 'frontier', key, sid: S.sid });
+  if (r && r.error === 'nokey') {   // 第一次使用：自動設定研究前線金鑰（由通行碼推導）
+    try { await fetch(CONFIG.API, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ action: 'setkey', key }) }); } catch (e) {}
+    await new Promise(x => setTimeout(x, 2500)); r = await apiGet({ action: 'frontier', key, sid: S.sid });
+  }
+  if (!r || r.error) { FRONT.err = r && r.error === 'key' ? '研究前線金鑰尚未設定或已更換，請通知老師。' : '暫時讀不到研究前線（網路不穩？）'; return; }
+  FRONT.cards = (r.cards || []).map(c => Object.assign(c, { concepts: String(c.concepts || '').split(/[,，\s]+/).filter(Boolean), topics: String(c.topic || '').split(/[,，\s]+/).filter(Boolean) }));
+  FRONT.jc = r.jc || []; FRONT.comments = r.comments || []; FRONT.loaded = true; FRONT.err = '';
+  if (FRONT.cards.some(c => c.mine)) checkBadges();
+  if (curView === 'frontier') go('frontier');
+}
+function findConcept(id) { for (const c of CH) for (const k of c.concepts) if (k.id === id) return { c, k }; return null; }
+function openConcept(id) {
+  const f = findConcept(id); if (!f) return;
+  if (!unlocked(f.c)) { S.skip = S.skip || {}; S.skip[f.c.id] = 1; save(); Rec.send('skip', { ch: f.c.id, item: 'from-frontier' }); }
+  go('chapter', f.c.id);
+  setTimeout(() => { const el = $('#cc_' + cssId(id)); if (el) { el.open = true; typeset(el); el.scrollIntoView({ behavior: 'smooth' }); } }, 120);
+}
+function conceptChip(id) {
+  const f = findConcept(id); if (!f) return `<span class="pill gray">${esc(id)}</span>`;
+  return `<button class="btn small ghost" style="margin:2px" onclick="openConcept('${id}')">${f.c.course === 'ec' ? '⚗️' : '☀️'} ${esc(id)} ${esc(f.k.title)}</button>`;
+}
+function frontierFor(cid) {
+  const L = FRONT.cards.filter(c => c.concepts.includes(cid));
+  if (!L.length) return '';
+  return `<div class="sec ext"><div class="h">📡 研究前線：最新文獻怎麼用這個觀念（${L.length}）</div>${L.map(c =>
+    `<div style="margin:4px 0">• <a href="javascript:void(0)" onclick="go('frontier','${c.id}')">${esc(c.title)}</a> <span class="muted" style="font-size:13px">${esc(c.cite || '')}</span></div>`).join('')}</div>`;
+}
+function parseJSON(t, d) { try { return typeof t === 'string' ? (t.trim() ? JSON.parse(t) : d) : (t || d); } catch (e) { return d; } }
+function renderFrontCard(cd, open) {
+  const d = document.createElement('details'); d.className = 'card'; d.id = 'fc_' + cssId(cd.id); if (open) d.open = true;
+  const ex = parseJSON(cd.ex, []), cm = FRONT.comments.filter(x => x.target === cd.id);
+  d.innerHTML = `<summary>${cd.topics.map(t => `<span class="pill sun">${TOPICS[t] || esc(t)}</span>`).join('')}${cd.tag ? `<span class="pill ${cd.tag === '爭議' ? 'red' : cd.tag === '共識' ? 'green' : ''}">${FTAGS[cd.tag] || esc(cd.tag)}</span>` : ''}
+      <b>${esc(cd.title)}</b><div class="muted" style="font-size:13px;font-weight:400;margin-left:2px">${esc(cd.cite || '')}${cd.date ? '・收錄 ' + esc(String(cd.date).slice(0, 10)) : ''}</div></summary>
+    ${cd.url ? `<div style="font-size:14px">🔗 <a href="${esc(cd.url)}" target="_blank" rel="noopener">原文連結</a></div>` : ''}
+    <div class="sec plain"><div class="h">📌 一句話重點</div>${cd.point || ''}</div>
+    ${cd.data ? `<div class="sec form"><div class="h">📊 關鍵數據</div>${cd.data}</div>` : ''}
+    ${cd.newk ? `<div class="sec deep"><div class="h">💡 新知：比課本多告訴我們什麼？</div>${cd.newk}</div>` : ''}
+    ${cd.concepts.length ? `<div class="sec pre"><div class="h">🔗 用到的基礎觀念（點了直接去讀）</div>${cd.concepts.map(conceptChip).join('')}</div>` : ''}
+    ${ex.length ? `<div class="sec quiz"><div class="h">🧮 判讀練習：用論文數據自己算一次</div><div class="fx"></div></div>` : ''}
+    ${cd.critique ? `<div class="sec ext"><div class="h">🧐 批判提問：讀論文時要追問的事</div>${cd.critique}</div>` : ''}
+    <div class="srcline">來源：${esc(cd.source || '')}${cd.nick ? '・投稿：' + esc(cd.nick) : ''}・卡片編號 ${esc(cd.id)}</div>
+    <div class="sec"><div class="h">💬 討論（${cm.length}）</div><div class="cml">${cm.map(x => `<div class="prebox" style="background:#f8fafc"><b>${esc(x.nick || '匿名')}</b> <span class="muted" style="font-size:12px">${esc(String(x.ts || '').slice(0, 10))}</span><br>${esc(x.text)}</div>`).join('') || '<div class="muted" style="font-size:14px">還沒有人留言，當第一個提問的人吧！</div>'}</div>
+      <textarea placeholder="我的疑問或看法（會以暱稱顯示）" style="width:100%;min-height:50px;border:1px solid var(--line);border-radius:8px;padding:6px;margin-top:6px"></textarea><button class="btn small">送出留言</button></div>`;
+  const fx = $('.fx', d);
+  if (fx) ex.forEach((q, j) => fx.appendChild(renderQ(q, 'F:' + cd.id + '#' + j, { ch: 'F' })));
+  $('.sec:last-child .btn', d).onclick = () => {
+    const ta = $('.sec:last-child textarea', d), t = ta.value.trim(); if (!t) return;
+    Rec.send('comment', { item: cd.id, comment: t }); FRONT.comments.push({ target: cd.id, nick: S.nick, text: t, ts: new Date().toISOString() });
+    ta.value = ''; const first = !(S.cmt || 0); S.cmt = (S.cmt || 0) + 1; save(); toast('留言已送出'); if (first) addXP(5, '第一次參與討論');
+    $('.cml', d).insertAdjacentHTML('beforeend', `<div class="prebox" style="background:#f8fafc"><b>${esc(S.nick)}</b><br>${esc(t)}</div>`);
+  };
+  d.addEventListener('toggle', () => { if (d.open) { typeset(d); Rec.send('card_open', { item: cd.id }); } }, { once: true });
+  return d;
+}
+function viewFrontier(V, openId) {
+  V.innerHTML = `<div class="card"><h2 style="margin:0">📡 研究前線</h2>
+    <div class="muted">課本是主幹，論文是不斷長出的枝葉。每張卡片都標出它用到哪些基礎觀念，點一下就能回到課程複習。</div>
+    ${FRONT.loaded ? '' : `<p class="muted">${FRONT.err || '讀取中…'}</p>`}</div>
+    <div id="jcA"></div>
+    <div class="card"><h3 style="margin:0 0 6px">📚 研究前線卡庫</h3><div id="fchips"></div>
+      <input class="search" id="fs" placeholder="搜尋標題、材料、關鍵字（例如 NiFe、STH、15N）…" style="margin-top:8px"></div>
+    <div id="flist"></div>
+    <details class="card" id="fsub"><summary><b>✍️ 投稿研究前線卡</b>（Journal Club 報告人請在會後投稿；老師審核通過後上線，可獲「文獻獵人」徽章）</summary><div id="fform"></div></details>`;
+  // ---- Journal Club ----
+  const jcs = FRONT.jc.slice().sort((a, b) => String(b.date).localeCompare(String(a.date)));
+  if (jcs.length) {
+    const J = jcs[0], cd = FRONT.cards.find(c => c.id === J.cardId), qs = parseJSON(J.quiz, []), done = (S.jc || {})[J.date];
+    const box = document.createElement('div'); box.className = 'card'; box.style.border = '2px solid var(--sun)';
+    box.innerHTML = `<h3 style="margin:0">📅 本期 Journal Club：${esc(String(J.date).slice(0, 10))}　報告人：${esc(J.presenter || '')} ${done ? '<span class="pill green">已完成會前任務</span>' : ''}</h3>
+      <div style="margin:6px 0"><b>${esc(cd ? cd.title : (J.title || ''))}</b> <span class="muted" style="font-size:13px">${esc(cd ? cd.cite || '' : '')}</span></div>
+      <div class="sec pre"><div class="h">① 會前先補：這篇論文用到的基礎觀念</div>${String(J.concepts || (cd ? cd.concepts.join(',') : '')).split(/[,，\s]+/).filter(Boolean).map(conceptChip).join('')}</div>
+      <div class="sec quiz"><div class="h">② 導讀小測驗（全部答對完成會前任務 +15 XP）</div><div class="jq"></div></div>
+      <div class="sec"><div class="h">③ 會中與會後</div>${cd ? '下方卡庫中打開這張卡片，看關鍵數據、做判讀練習，並在討論區留下你的疑問。' : '報告人會後請用下方「投稿研究前線卡」整理這篇論文。'}</div>
+      ${jcs.length > 1 ? `<details><summary class="muted">過去的 Journal Club（${jcs.length - 1}）</summary>${jcs.slice(1).map(x => `<div>• ${esc(String(x.date).slice(0, 10))}　${esc(x.presenter || '')}　${esc((FRONT.cards.find(c => c.id === x.cardId) || {}).title || x.title || '')}</div>`).join('')}</details>` : ''}`;
+    const jq = $('.jq', box);
+    const check = () => { if ((S.jc || {})[J.date]) return; if (qs.every((q, i) => S.quiz['JC:' + J.date + '#' + i] && S.quiz['JC:' + J.date + '#' + i].ok)) {
+      S.jc = S.jc || {}; S.jc[J.date] = Date.now(); save(); Rec.send('jc', { item: String(J.date).slice(0, 10), comment: J.cardId }); addXP(15, '完成 Journal Club 會前任務'); } };
+    qs.forEach((q, i) => jq.appendChild(renderQ(q, 'JC:' + J.date + '#' + i, { ch: 'JC', onDone: check })));
+    if (!qs.length) jq.innerHTML = '<div class="muted">（這期沒有導讀題）</div>';
+    $('#jcA', V).appendChild(box);
+  }
+  // ---- 卡庫 ----
+  let topic = 'all';
+  const chips = () => { $('#fchips', V).innerHTML = [['all', '全部']].concat(Object.entries(TOPICS)).map(([k, n]) => `<button class="btn small ${k === topic ? '' : 'ghost'}" data-k="${k}" style="margin:2px">${n}</button>`).join('');
+    $$('#fchips button', V).forEach(b => b.onclick = () => { topic = b.dataset.k; chips(); list(); }); };
+  const list = () => {
+    const kw = ($('#fs', V).value || '').toLowerCase(), L = $('#flist', V); L.innerHTML = '';
+    const arr = FRONT.cards.filter(c => (topic === 'all' || c.topics.includes(topic)) && (!kw || JSON.stringify(c).toLowerCase().includes(kw)))
+      .sort((a, b) => String(b.date).localeCompare(String(a.date)));
+    if (FRONT.loaded && !arr.length) L.innerHTML = '<div class="card muted">沒有符合的卡片。</div>';
+    arr.forEach(c => L.appendChild(renderFrontCard(c, c.id === openId)));
+    typeset(L);
+    if (openId) setTimeout(() => { const e = $('#fc_' + cssId(openId)); if (e) e.scrollIntoView({ behavior: 'smooth' }); }, 150);
+  };
+  $('#fs', V).oninput = list; chips(); list();
+  // ---- 投稿表單 ----
+  const F = $('#fform', V);
+  const fld = (id, label, ph, big) => `<div class="field"><label>${label}</label>${big ? `<textarea id="${id}" placeholder="${ph}" style="width:100%;min-height:60px;border:1.5px solid var(--line);border-radius:10px;padding:8px"></textarea>` : `<input id="${id}" placeholder="${ph}">`}</div>`;
+  F.innerHTML = `${fld('f_title', '論文標題 *', 'Title')}${fld('f_cite', '出處 *', '第一作者 et al., 期刊, 年份')}${fld('f_url', 'DOI 或連結', 'https://doi.org/...')}
+    <div class="field"><label>主題（可複選）</label>${Object.entries(TOPICS).map(([k, n]) => `<label style="display:inline-block;margin-right:10px;font-weight:400"><input type="checkbox" value="${k}"> ${n}</label>`).join('')}</div>
+    ${fld('f_point', '📌 一句話重點 *（用自己的話寫，不要貼原文）', '這篇論文最重要的發現是…', 1)}${fld('f_data', '📊 關鍵數據', '例如：η10 = 230 mV、Tafel 45 mV/dec、FE 95%、穩定 100 h、STH 12%', 1)}
+    ${fld('f_new', '💡 新知：跟課本相比，它多告訴我們什麼？', '', 1)}${fld('f_con', '🔗 用到的基礎觀念編號（逗號分隔）', '例如 E3-3, E5-2, 1-5（可在課程每個觀念標題旁看到編號）')}
+    ${fld('f_ex', '🧮 判讀練習題（選填）', '用論文數據出一題計算題，附答案', 1)}${fld('f_crit', '🧐 批判提問', '例如：有沒有做 iR 補償？用幾何面積還是 ECSA 歸一化？', 1)}
+    <button class="btn" id="f_go">送出投稿</button> <span class="muted" style="font-size:13px">送出後進入「待審」，老師在試算表審核通過後才會出現在卡庫。</span>`;
+  $('#f_go', V).onclick = () => {
+    const g = id => ($('#' + id, V).value || '').trim();
+    if (!g('f_title') || !g('f_cite') || !g('f_point')) return toast('標題、出處、一句話重點為必填');
+    const card = { title: g('f_title'), cite: g('f_cite'), url: g('f_url'), topic: $$('#fform input[type=checkbox]:checked', V).map(x => x.value).join(','),
+      point: g('f_point'), data: g('f_data'), newk: g('f_new'), concepts: g('f_con'), exText: g('f_ex'), critique: g('f_crit') };
+    Rec.send('card_submit', { item: card.title.slice(0, 80), comment: JSON.stringify(card) }); Rec.flush();
+    $$('#fform input, #fform textarea', V).forEach(x => { if (x.type === 'checkbox') x.checked = false; else x.value = ''; });
+    S.submits = (S.submits || 0) + 1; save(); addXP(20, '投稿研究前線卡'); toast('投稿已送出，等待老師審核！');
+  };
+}
+
 /* ---------------- me ---------------- */
 function viewMe(V) {
   const L = levelOf(S.xp);
   const tt = Object.values(S.time).reduce((a, b) => a + b, 0);
   V.innerHTML = `<div class="card"><h2 style="margin:0">👤 ${esc(S.nick || '')}　<span class="muted" style="font-size:15px">${esc(S.name)}（${esc(S.sid)}）</span></h2>
-    <div class="muted" style="font-size:13px">真實姓名只有老師看得到；排行榜上顯示暱稱。${S.placement ? '　入門鑑定：' + TIERS[S.placement.tier].e + ' ' + TIERS[S.placement.tier].n + '（' + S.placement.score + '/' + S.placement.total + '）' : ''}</div>
+    <div class="muted" style="font-size:13px">真實姓名只有老師看得到；排行榜上顯示暱稱。${CKEYS.filter(k => getPlace(k)).map(k => '　' + COURSES[k].no + '鑑定：' + TIERS[getPlace(k).tier].e + ' ' + TIERS[getPlace(k).tier].n + '（' + getPlace(k).score + '/' + getPlace(k).total + '）').join('')}</div>
     <p>Lv${L.lv}「${L.title}」・${S.xp} XP・累計修練 ${Math.round(tt / 60)} 分鐘・連續 ${streak()} 天</p>
     <table class="data"><tr><th>章節</th><th>觀念</th><th>計算</th><th>魔王</th><th>時間</th><th>平均自評</th></tr>
     ${CH.map(c => { const s = chStats(c); const rs = c.concepts.map(k => S.rating[k.id] && S.rating[k.id].r).filter(Boolean);
@@ -922,7 +1083,7 @@ function viewMe(V) {
     <button class="btn" id="fbs">送出回饋</button></div>
     <div class="card"><h3 style="margin-top:0">⚙️ 其他</h3>
       <button class="btn ghost" id="nickb">✏️ 修改暱稱</button>
-      <button class="btn ghost" id="placeb">🎓 重新進行入門鑑定</button>
+      <button class="btn ghost" id="placeb">🎓 重新進行目前課程的入門鑑定</button>
       <button class="btn ghost" id="sync">☁️ 從雲端取回進度（換裝置時用）</button>
       <button class="btn ghost" id="lo">🚪 登出（換人使用）</button>
       <button class="btn ghost" id="forget">🎫 登出並清除本機的入場券</button>
@@ -931,7 +1092,7 @@ function viewMe(V) {
   $('#lo', V).onclick = () => { leaveChapter(); Rec.flush(true); LS.del(KEYP + 'who'); location.hash = ''; location.reload(); };
   $('#forget', V).onclick = () => { leaveChapter(); Rec.flush(true); LS.del(KEYP + 'who'); LS.del(KEYP + 'ticket'); location.hash = ''; location.reload(); };
   $('#nickb', V).onclick = () => { const n = prompt('新的暱稱（最多 12 字，大家看得到）', S.nick || ''); if (n && n.trim()) { S.nick = n.trim().slice(0, 12); LS.set(KEYP + 'who', { sid: S.sid, name: S.name, nick: S.nick }); save(); renderHUD(); Rec.send('nick', { comment: S.nick }); go('me'); } };
-  $('#placeb', V).onclick = () => go('placement');
+  $('#placeb', V).onclick = () => go('placement', S.course || 'pv');
   $('#sync', V).onclick = async () => { const ok = await pullProgress(true); toast(ok ? '已取回雲端進度' : '雲端沒有更新的進度'); go('me'); };
 }
 async function pullProgress(force) {
@@ -1214,12 +1375,13 @@ async function doLogin(sid, name, nick, silent) {
   renderHUD();
   if (CONFIG.API) { const changed = await pullProgress(false); if (changed) toast('已從雲端載入你的進度'); }
   if (newDay) addXP(5, '今日簽到'); else save(false);
+  loadFrontier();
   checkBadges();
   const h = location.hash;
   const m = h.match(/ch=(\d+)/);
-  if (!S.placement && !S.placementSkipped) go('placement');
+  if (!getPlace(S.course || 'pv') && !placeSkipped(S.course || 'pv')) go('placement', S.course || 'pv');
   else if (m && CH.find(c => c.id === +m[1]) && unlocked(CH.find(c => c.id === +m[1]))) go('chapter', +m[1]);
-  else if (/#(tools|formulas|glossary|wrong|hall|me)\b/.test(h)) go(h.slice(1).split(/[&?]/)[0]);
+  else if (/#(tools|formulas|glossary|wrong|hall|me|frontier)\b/.test(h)) go(h.slice(1).split(/[&?]/)[0]);
   else go('map');
 }
 $('#tabs').addEventListener('click', e => { const b = e.target.closest('button'); if (b) go(b.dataset.v); });

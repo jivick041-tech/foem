@@ -180,6 +180,29 @@ table.data th{background:#f8f5ec}
 .me{background:#fef3c7}
 .search{width:100%;padding:9px 12px;border:1.5px solid var(--line);border-radius:10px;margin-bottom:10px}
 @media (max-width:600px){ header.top{padding:6px 10px;gap:6px} .player{gap:6px;font-size:13px} #pTitle{display:none} .xpbar{width:70px} .brand{font-size:16px} main{padding:10px 8px 80px} .card{padding:14px} }
+
+/* ---- 專題比較卡、儀器分析 ---- */
+.mopt{display:block;cursor:pointer} .mopt input{margin-right:6px}
+.story{position:relative;margin:10px 0 4px;padding-left:34px}
+.story:before{content:'';position:absolute;left:13px;top:6px;bottom:6px;width:2px;background:#c7d2fe}
+.step{position:relative;margin:0 0 14px}
+.step>.sn{position:absolute;left:-34px;top:0;width:26px;height:26px;border-radius:50%;background:#6366f1;color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center}
+.step>.stt{font-weight:800;color:#3730a3;margin-bottom:3px}
+.step.key>.sn{background:#db2777} .step.key>.stt{color:#be185d}
+.cmp{width:100%;border-collapse:collapse;font-size:13.5px;margin:6px 0} .cmp th,.cmp td{border:1px solid #e2e8f0;padding:6px 8px;vertical-align:top;text-align:left} .cmp td:first-child{min-width:110px} .cmp td{min-width:90px} .cmp th{background:#eef2ff;color:#3730a3;white-space:nowrap} .cmp tr:nth-child(even) td{background:#fafafa}
+.tblwrap{overflow-x:auto}
+.chainrow{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin:5px 0} .chainrow>div{border-radius:8px;padding:6px 8px;font-size:13.5px} .chainrow .c1{background:#eff6ff} .chainrow .c2{background:#f0fdf4} .chainrow .c3{background:#fef2f2}
+.chainhead{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;font-size:12px;font-weight:800;color:#475569}
+.proto{background:#fffbeb;border:1px dashed #f59e0b;border-radius:10px;padding:6px 10px;font-size:13px;color:#92400e;margin:6px 0}
+.igrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.icard{border:1.5px solid var(--line);border-radius:14px;padding:10px 12px;background:#fff;cursor:pointer;transition:.15s} .icard:hover{border-color:#6366f1;box-shadow:0 4px 14px rgba(99,102,241,.15)}
+.icard .ic{font-size:26px} .icard b{display:block;margin:2px 0} .icard .muted{font-size:13px}
+.mtx{border-collapse:collapse;font-size:13px} .mtx th,.mtx td{border:1px solid #e2e8f0;padding:5px 7px;text-align:center} .mtx td:first-child,.mtx th:first-child{text-align:left;white-space:nowrap} .mtx td.y{background:#dcfce7;color:#166534;font-weight:800;cursor:pointer} .mtx td.o{background:#fef9c3;color:#854d0e;cursor:pointer} .mtx th.ih{cursor:pointer;color:#3730a3;white-space:nowrap;font-size:12px}
+.mtip{background:#f8fafc;border-radius:10px;padding:8px 12px;margin-top:8px;font-size:14px;min-height:20px}
+.meas{width:100%;border-collapse:collapse;font-size:14px} .meas td,.meas th{border:1px solid #e2e8f0;padding:6px 8px;vertical-align:top} .meas th{background:#f0fdfa;color:#115e59;text-align:left}
+.exbox{border:1.5px solid #e2e8f0;border-radius:12px;padding:10px 12px;margin:10px 0;background:#fff}
+.read3{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:6px 0} .read3>div{border-radius:8px;padding:6px 8px;font-size:13.5px} .read3 .r1{background:#eff6ff} .read3 .r2{background:#f5f3ff} .read3 .r3{background:#fff7ed}
+@media(max-width:640px){.chainrow,.chainhead,.read3{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -226,6 +249,7 @@ table.data th{background:#f8f5ec}
   <nav class="tabs" id="tabs">
     <button data-v="map" class="on">🗺️ 修練地圖</button>
     <button data-v="frontier">📡 研究前線</button>
+    <button data-v="instr">🔬 儀器寶鑑</button>
     <button data-v="arena">⚔️ 競技場</button>
     <button data-v="tools">🧪 模擬實驗室</button>
     <button data-v="formulas">📒 公式卡</button>
@@ -243,7 +267,7 @@ table.data th{background:#f8f5ec}
 <div id="modal" class="hidden"><div class="box" id="modalBox"></div></div>
 
 <script src="config.js"></script>
-<script src="content.enc.js?v=5ce421463f"></script>
+<script src="content.enc.js?v=e5f5fbb912"></script>
 <script>
 /* 設定在 config.js（老師可直接在 GitHub 網頁上編輯）；加密內容在 content.enc.js */
 const CONFIG = Object.assign({ API: '', ROSTER: false, FREE_ROAM: false, BOSS_REQ: 0.6 }, window.PVQ_CONFIG || {});
@@ -278,9 +302,10 @@ async function decryptPayload(pass) {
   const buf = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b64(PAYLOAD.iv) }, key, b64(PAYLOAD.ct));
   return new TextDecoder().decode(buf);
 }
+const XC = { themes: [], instr: [], props: [] };  // 專題比較卡、儀器分析（內容檔可 push；之後也可由雲端卡庫補充）
 function loadContent(src) {
   // content files call CH.push / GLOSS.push / CARDS.push
-  new Function('CH', 'GLOSS', 'CARDS', 'PLACEMENT', src)(CH, GLOSS, CARDS, PLACEMENT);
+  new Function('CH', 'GLOSS', 'CARDS', 'PLACEMENT', 'X', src)(CH, GLOSS, CARDS, PLACEMENT, XC);
   arrange();
 }
 
@@ -437,6 +462,9 @@ const BADGES = [
   { id: 'cleanwrong', e: '🧹', n: '錯題清零', d: '曾經錯過的題目全部重新答對', f: () => Object.keys(S.wrongEver || {}).length >= 5 && Object.keys(S.wrong).length === 0 },
   { id: 'hunter', e: '🔎', n: '文獻獵人', d: '投稿的研究前線卡通過老師審核', f: () => FRONT.cards.some(c => c.mine) },
   { id: 'jc3', e: '📅', n: 'Journal Club 常客', d: '完成 3 次 Journal Club 會前任務', f: () => Object.keys(S.jc || {}).length >= 3 },
+  { id: 'inst1', e: '🔬', n: '儀器入門', d: '通關 1 台儀器（範例與練習全對）', f: () => Object.keys(S.instDone || {}).filter(k => k[0] !== '_').length >= 1 },
+  { id: 'inst5', e: '🧑‍🔬', n: '儀器達人', d: '通關 5 台儀器', f: () => Object.keys(S.instDone || {}).filter(k => k[0] !== '_').length >= 5 },
+  { id: 'theme1', e: '🧭', n: '比較思考者', d: '完成 1 張專題比較卡的推理練習', f: () => Object.keys(S.thDone || {}).length >= 1 },
   { id: 'critic', e: '💬', n: '勇於提問', d: '在研究前線留言 5 次', f: () => (S.cmt || 0) >= 5 },
   { id: 'track1', e: '🎖️', n: '專題通關', d: '走完任一條研究前線專題路線（至少 3 張卡）', f: () => Object.keys(S.tracks || {}).length >= 1 },
   { id: 'daily1', e: '📅', n: '每日一練', d: '完成第一次每日挑戰', f: () => Object.keys(S.daily || {}).length >= 1 },
@@ -487,7 +515,7 @@ function go(v, arg) {
   curView = v;
   $$('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.v === v || (v === 'chapter' && b.dataset.v === 'map')));
   const V = $('#view'); V.innerHTML = '';
-  ({ placement: viewPlacement, frontier: viewFrontier, arena: viewArena, map: viewMap, chapter: viewChapter, tools: viewTools, formulas: viewFormulas, glossary: viewGlossary, wrong: viewWrong, hall: viewHall, me: viewMe })[v](V, arg);
+  ({ placement: viewPlacement, frontier: viewFrontier, instr: viewInstr, arena: viewArena, map: viewMap, chapter: viewChapter, tools: viewTools, formulas: viewFormulas, glossary: viewGlossary, wrong: viewWrong, hall: viewHall, me: viewMe })[v](V, arg);
   typeset(V);
   window.scrollTo(0, 0);
   if (v === 'chapter') { curCh = arg; enterT = Date.now(); history.replaceState(null, '', '#ch=' + arg); }
@@ -668,7 +696,7 @@ function renderQ(q, key, ctx) {
     const wasOk = rec.ok;
     rec.tries++; if (ok) rec.ok = true; S.quiz[key] = rec;
     S.wrongEver = S.wrongEver || {};
-    if (!ok && !/^(F|JC):/.test(key)) { S.wrong[key] = { ch: ctx.ch, t: Date.now() }; S.wrongEver[key] = 1; }
+    if (!ok && !/^(F|JC|TH|I|IM):/.test(key)) { S.wrong[key] = { ch: ctx.ch, t: Date.now() }; S.wrongEver[key] = 1; }
     else if (S.wrong[key]) { delete S.wrong[key]; }
     Rec.send('quiz', { ch: ctx.ch, item: key, correct: ok ? 1 : 0, tries: rec.tries });
     if (ok && !wasOk) addXP(rec.tries === 1 ? 10 : 4, rec.tries === 1 ? '一次答對' : '訂正成功');
@@ -676,7 +704,16 @@ function renderQ(q, key, ctx) {
     if (ctx.concept) checkConceptPass(ctx.chapter, ctx.concept);
     if (ctx.onDone) ctx.onDone(ok);
   };
-  if (q.type === 'num') {
+  if (q.type === 'multi') {
+    const order = shuffle(q.opts.map((o, i) => i));
+    body.innerHTML = `<div class="muted" style="font-size:13px;margin-bottom:4px">（複選：選出所有正確的選項後按「送出」）</div>` + order.map(i => `<label class="opt mopt"><input type="checkbox" value="${i}"> ${q.opts[i]}</label>`).join('') + `<button class="btn small" style="margin-top:6px">送出</button>`;
+    $('button', body).onclick = () => {
+      const pick = $$('input:checked', body).map(x => +x.value).sort(), ans = q.ans.slice().sort();
+      const ok = pick.length === ans.length && pick.every((v, j) => v === ans[j]);
+      $$('.mopt', body).forEach(l => { const v = +$('input', l).value; l.classList.remove('right', 'wrong'); if (q.ans.includes(v)) l.classList.add('right'); else if ($('input', l).checked) l.classList.add('wrong'); });
+      showFb(ok); onAnswer(ok);
+    };
+  } else if (q.type === 'num') {
     body.innerHTML = `<div class="numin"><input placeholder="輸入數值"> <span>${q.unit || ''}</span><button class="btn small">送出</button></div>`;
     const inp = $('input', body);
     $('button', body).onclick = () => {
@@ -1024,9 +1061,23 @@ async function loadFrontier() {
   if (!r || r.error) { FRONT.err = r && r.error === 'key' ? '研究前線金鑰尚未設定或已更換，請通知老師。' : '暫時讀不到研究前線（網路不穩？）'; return; }
   FRONT.cards = (r.cards || []).map(c => Object.assign(c, { concepts: String(c.concepts || '').split(/[,，\s]+/).filter(Boolean), topics: String(c.topic || '').split(/[,，\s]+/).filter(Boolean) }));
   FRONT.jc = r.jc || []; FRONT.comments = r.comments || []; FRONT.loaded = true; FRONT.err = '';
+  mergeKB(r.kb || []);
   if (FRONT.cards.some(c => c.mine)) checkBadges();
   if (curView === 'frontier') go('frontier');
+  if (curView === 'instr' && (r.kb || []).length) go('instr');
 }
+/* 雲端知識庫（專題比較卡、儀器、文獻用例）：以編號覆蓋或新增到內容檔的版本上 */
+function mergeKB(rows) {
+  rows.forEach(r => { let o; try { o = typeof r.json === 'string' ? JSON.parse(r.json) : r.json; } catch (e) { return; } if (!o) return;
+    o.id = o.id || r.id; o.added = o.added || r.date;
+    if (r.type === 'theme') { const i = XC.themes.findIndex(x => x.id === o.id); if (i >= 0) XC.themes[i] = o; else XC.themes.push(o); }
+    else if (r.type === 'instr') { const i = XC.instr.findIndex(x => x.id === o.id); if (i >= 0) { o.uses = (XC.instr[i].uses || []).concat(o.uses || []); XC.instr[i] = o; } else XC.instr.push(o); }
+    else if (r.type === 'use') { const I = XC.instr.find(x => x.id === o.instr); if (I) (I.uses = I.uses || []).push(o); }
+    else if (r.type === 'ipatch') { const I = XC.instr.find(x => x.id === o.instr); if (I) ['measures', 'formulas', 'cond', 'traps', 'examples', 'quiz', 'concepts'].forEach(k => { if (Array.isArray(o[k])) I[k] = (I[k] || []).concat(o[k]); }); }
+    else if (r.type === 'prop') { if (!XC.props.find(x => x.id === o.id)) XC.props.push(o); }
+    else if (r.type === 'mix') { (XC.mix = XC.mix || []).push(o); } });
+}
+const isRecent = d => d && (Date.now() - new Date(d).getTime()) < 14 * 864e5;
 function findConcept(id) { for (const c of CH) for (const k of c.concepts) if (k.id === id) return { c, k }; return null; }
 function openConcept(id) {
   const f = findConcept(id); if (!f) return;
@@ -1079,7 +1130,8 @@ function viewFrontier(V, openId) {
     <div style="font-size:14px;margin-top:6px">🌱 成長模式：<b>新文獻 → 研究前線卡 → 專題路線</b>（同主題的卡片依時間串起來）<b>→ 卡片累積夠多、知識穩定後，整理成正式課程章節</b>。選一個主題，就能看到該專題路線的進度。</div>
     ${FRONT.loaded ? '' : `<p class="muted">${FRONT.err || '讀取中…'}</p>`}</div>
     <div id="jcA"></div>
-    <div class="card"><h3 style="margin:0 0 6px">📚 研究前線卡庫</h3><div id="fchips"></div>
+    <div id="themesA"></div>
+    <div class="card"><h3 style="margin:0 0 6px">📚 研究前線卡庫（單篇）</h3><div id="fchips"></div>
       <input class="search" id="fs" placeholder="搜尋標題、材料、關鍵字（例如 NiFe、STH、15N）…" style="margin-top:8px"></div>
     <div id="flist"></div>
     <details class="card" id="fsub"><summary><b>✍️ 投稿研究前線卡</b>（Journal Club 報告人請在會後投稿；老師審核通過後上線，可獲「文獻獵人」徽章）</summary><div id="fform"></div></details>`;
@@ -1101,6 +1153,9 @@ function viewFrontier(V, openId) {
     if (!qs.length) jq.innerHTML = '<div class="muted">（這期沒有導讀題）</div>';
     $('#jcA', V).appendChild(box);
   }
+  // ---- 專題比較卡 ----
+  if (XC.themes.length) { const TA = $('#themesA', V); TA.insertAdjacentHTML('beforeend', `<div class="card" style="border:2px solid #6366f1"><h3 style="margin:0">🧭 專題比較卡</h3><div class="muted" style="font-size:14px">同一個研究問題的多篇論文放在一起比：問題出在哪個物理量、各家怎麼解、用什麼證據證明、還有什麼沒解決。單篇卡在下方卡庫。</div></div>`);
+    XC.themes.forEach(T => TA.appendChild(renderTheme(T, openId === T.id))); }
   // ---- 卡庫 ----
   const cnt = t => FRONT.cards.filter(c => c.topics.includes(t)).length;
   const chips = () => { $('#fchips', V).innerHTML = `<button class="btn small ${topic === 'all' ? '' : 'ghost'}" data-k="all" style="margin:2px">全部（${FRONT.cards.length}）</button>` +
@@ -1351,14 +1406,127 @@ async function pullProgress(force) {
 
 /* ---------------- tools (simulations) ---------------- */
 const TOOLS = [];  // filled by tools section below
+/* ===================== 專題比較卡（研究前線） ===================== */
+function instrChip(id) { const I = XC.instr.find(x => x.id === id); return `<a class="pill" style="cursor:pointer;background:#ecfeff;color:#0e7490" onclick="go('instr','${id}')">${I ? I.icon + ' ' + esc(I.short || I.id) : '🔬 ' + esc(id)}</a>`; }
+function paperRef(p) { const fc = (FRONT.cards || []).find(c => c.id === p.key); return `<b>${esc(p.short || p.cite || '')}</b>${fc ? ` <a href="javascript:void(0)" onclick="go('frontier','${p.key}')" style="font-size:12px">單篇卡 ${p.key}</a>` : ''}${p.url ? ` <a href="${esc(p.url)}" target="_blank" rel="noopener" style="font-size:12px">原文</a>` : ''}`; }
+function renderTheme(T, open) {
+  const d = document.createElement('details'); d.className = 'card'; d.id = 'th_' + cssId(T.id); if (open) d.open = true; d.style.borderLeft = '6px solid #6366f1';
+  const P = T.papers || [], step = (n, t, html, key) => html ? `<div class="step${key ? ' key' : ''}"><div class="sn">${n}</div><div class="stt">${t}</div><div>${html}</div></div>` : '';
+  const tbl = (head, rows) => `<div class="tblwrap"><table class="cmp"><tr>${head.map(h => `<th>${h}</th>`).join('')}</tr>${rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</table></div>`;
+  const ev = P.map(p => `<details class="exbox"${P.length === 1 ? ' open' : ''}><summary>${paperRef(p)}　<span class="muted" style="font-size:13px">證據鏈與關鍵指標</span></summary>
+      <div class="chainhead"><div>📣 作者主張</div><div>🔬 用什麼證據（量測）</div><div>🧐 還缺什麼／其他解釋</div></div>
+      ${(p.evidence || []).map(e => `<div class="chainrow"><div class="c1">${e[0]}</div><div class="c2">${e[1]}${e[3] ? ' ' + e[3].map(instrChip).join('') : ''}</div><div class="c3">${e[2] || ''}</div></div>`).join('')}
+      ${p.metrics ? `<div style="margin-top:8px;font-weight:700;font-size:14px">📊 不只效率：關鍵指標與它說明了什麼</div>` + tbl(['指標', '數值', '說明了什麼'], p.metrics) : ''}</details>`).join('');
+  let n = 0; const N = () => ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩'][n++];
+  d.innerHTML = `<summary>${(T.topics || []).map(t => `<span class="pill sun">${TOPICS[t] || esc(t)}</span>`).join('')}<span class="pill" style="background:#e0e7ff">專題比較・${P.length} 篇</span>${isRecent(T.updated || T.added) ? '<span class="pill red">本週更新</span>' : ''}
+      <b>${esc(T.title)}</b><div class="muted" style="font-size:13px;font-weight:400">${T.oneline || ''}</div></summary>
+    ${T.proto ? `<div class="proto">🚧 ${T.proto}</div>` : ''}
+    <div class="story">
+      ${step(N(), '背景現況', T.bg)}
+      ${step(N(), '目前問題：卡在哪個物理量？', T.problem, 1)}
+      ${step(N(), '現存解決方式與技術瓶頸', T.existing ? tbl(['方法', '做法', '瓶頸'], T.existing) : '')}
+      ${step(N(), '本專題論文的方法、實驗條件與核心假說', (P.some(p => p.cond) ? tbl(['論文', '方法', '實驗條件（特別不同處）', '核心假說：改變了什麼物理量 → 為何影響性能'], P.map(p => [paperRef(p), p.method || '', p.cond || '—', p.hypo || '']))
+        : tbl(['論文', '方法', '核心假說：改變了什麼物理量 → 為何影響性能'], P.map(p => [paperRef(p), p.method || '', p.hypo || '']))) +
+        `<div style="margin-top:8px;font-weight:700;font-size:14px">⚖️ 優點與缺點／隱憂</div>` + tbl(['論文', '優點', '缺點／隱憂'], P.map(p => [paperRef(p), p.pro || '', p.con || ''])), 1)}
+      ${step(N(), '關鍵結果與證據鏈（不只效率）', ev, 1)}
+      ${step(N(), '關鍵新穎點：和既有方法比，新在哪？', tbl(['論文', '新穎點'], P.map(p => [paperRef(p), p.novel || ''])))}
+      ${step(N(), '共識與分歧', (T.consensus ? `<div><b style="color:#166534">✅ 多篇互相支持：</b><ul>${T.consensus.map(x => `<li>${x}</li>`).join('')}</ul></div>` : '') + (T.dispute ? `<div><b style="color:#b91c1c">⚖️ 仍有爭議／未解：</b><ul>${T.dispute.map(x => `<li>${x}</li>`).join('')}</ul></div>` : ''))}
+      ${step(N(), '知識點總結（連回課程與儀器）', (T.knowledge || []).map(k => `<div class="prebox">💡 ${k.t}<div style="margin-top:4px">${(k.c || []).map(conceptChip).join('')}${(k.i || []).map(instrChip).join('')}</div></div>`).join(''), 1)}
+      ${step(N(), '對本實驗室的啟示', T.lab)}
+    </div>
+    ${(T.quiz || []).length ? `<div class="sec quiz"><div class="h">🧠 推理練習：不是算效率，是想「為什麼」</div><div class="tq"></div></div>` : ''}`;
+  const tq = $('.tq', d);
+  if (tq) T.quiz.forEach((q, j) => tq.appendChild(renderQ(q, 'TH:' + T.id + '#' + j, { ch: 'TH', onDone: () => {
+    if (T.quiz.every((x, i) => S.quiz['TH:' + T.id + '#' + i] && S.quiz['TH:' + T.id + '#' + i].ok) && !(S.thDone || {})[T.id]) { S.thDone = S.thDone || {}; S.thDone[T.id] = Date.now(); save(); addXP(20, '完成專題比較卡：' + T.title); Rec.send('theme', { item: T.id }); }
+  } })));
+  d.addEventListener('toggle', () => { if (d.open) { typeset(d); Rec.send('card_open', { item: T.id }); } }, { once: true });
+  return d;
+}
+
+/* ===================== 儀器分析 ===================== */
+function drawFigs(root, figs) {
+  requestAnimationFrame(() => (figs || []).forEach((f, j) => { if (!f.plot) return; const cv = $(`figure[data-j="${j}"] canvas`, root); if (cv && cv.clientWidth) plot(cv, buildPlot(f.plot)); }));
+}
+function figsHTML(figs) { return (figs || []).map((f, j) => `<figure class="fig" data-j="${j}">${f.svg ? f.svg : `<canvas class="fplot" style="height:${f.h || 240}px"></canvas>`}${f.cap ? `<figcaption>${f.cap}</figcaption>` : ''}</figure>`).join(''); }
+const INSTR_GROUPS = [['☀️ 元件與光電', ['JV', 'EQE', 'PL', 'UVVIS', 'SCLC']], ['🔬 結構與表面', ['XRD', 'SEM', 'XPS', 'RAMAN', 'XAS']], ['⚗️ 電化學', ['CV', 'EIS', 'RDE']], ['🧪 產物與組成定量', ['GC', 'NMR', 'INDO', 'ICP']]];
+function instrGroups() {
+  const used = new Set(), G = INSTR_GROUPS.map(([g, ids]) => [g, ids.map(id => XC.instr.find(I => I.id === id)).filter(Boolean)]);
+  G.forEach(([, L]) => L.forEach(I => used.add(I.id)));
+  const rest = XC.instr.filter(I => !used.has(I.id)); if (rest.length) G.push(['🆕 從新文獻收錄', rest]);
+  return G.filter(([, L]) => L.length);
+}
+function viewInstr(V, arg) {
+  if (arg && XC.instr.find(x => x.id === arg)) return renderInstr(V, XC.instr.find(x => x.id === arg));
+  const done = id => (S.instDone || {})[id];
+  V.innerHTML = `<div class="card"><h2 style="margin:0">🔬 儀器寶鑑</h2>
+    <div class="muted">論文的每一個結論都建立在量測上。這裡把文獻中用到的儀器整理成圖鑑：先懂原理與公式，再知道它能測什麼、為什麼能測、限制在哪，最後用文獻上的數據練習「怎麼看圖、怎麼下結論」。新文獻用到新儀器時，會自動加進來。</div>
+    <div style="margin-top:8px;font-size:14px">🎮 練習方式：<b>🔍 數據偵探</b>（看圖下結論）・<b>🎯 選對儀器</b>（研究問題該用哪些量測）・<b>🕵️ 找碴</b>（找出論述的漏洞）・<b>🧪 動手模擬</b></div></div>
+    <div class="card"><h3 style="margin:0 0 8px">📚 儀器圖鑑</h3>${instrGroups().map(([g, L]) => `<div style="margin:10px 0 6px;font-weight:800;color:#334155">${g}</div><div class="igrid">${L.map(I => `<div class="icard" onclick="go('instr','${I.id}')"><div class="ic">${I.icon}</div><b>${esc(I.name)}</b><div class="muted">${I.oneline || ''}</div><div style="margin-top:6px">${(I.cat || []).map(c => `<span class="pill gray">${c}</span>`).join('')}${done(I.id) ? '<span class="pill green">已通關</span>' : ''}${isRecent(I.added) ? '<span class="pill red">🆕 新收錄</span>' : ''}${instrUses(I).length ? `<span class="pill">📚 ${instrUses(I).length} 篇用例</span>` : ''}</div></div>`).join('')}</div>`).join('')}</div>
+    <div class="card"><h3 style="margin:0 0 4px">🧩 性質 × 儀器對照表</h3><div class="muted" style="font-size:13px">● 主要用途　○ 間接或輔助。點格子看「為什麼能測、限制是什麼」；點儀器名稱進入圖鑑。</div>
+      <div class="tblwrap" style="margin-top:6px"><table class="mtx"><tr><th>想知道的性質</th>${instrGroups().flatMap(x => x[1]).map(I => `<th class="ih" onclick="go('instr','${I.id}')" title="${esc(I.name)}">${I.icon}<br>${esc(I.mcol || String(I.short || I.id).split('／')[0].replace('原位 ', '').replace('靛酚藍比色', '比色').replace('¹H ', '').replace('-MS', ''))}</th>`).join('')}</tr>
+      ${XC.props.map(p => `<tr><td>${p.n}</td>${instrGroups().flatMap(x => x[1]).map(I => { const m = (I.measures || []).find(x => x.p === p.id); return m ? `<td class="${m.lv === 'o' ? 'o' : 'y'}" data-i="${I.id}" data-p="${p.id}">${m.lv === 'o' ? '○' : '●'}</td>` : '<td></td>'; }).join('')}</tr>`).join('')}</table></div>
+      <div class="mtip" id="mtip">👆 點一個有標記的格子</div></div>
+    <div class="card"><h3 style="margin:0 0 4px">🎯 綜合挑戰：選對儀器</h3><div class="muted" style="font-size:13px">跨儀器的題目，全部答對 +20 XP。</div><div id="mixq"></div></div>`;
+  $$('.mtx td[data-i]', V).forEach(td => td.onclick = () => { const I = XC.instr.find(x => x.id === td.dataset.i), m = I.measures.find(x => x.p === td.dataset.p), p = XC.props.find(x => x.id === td.dataset.p);
+    $('#mtip', V).innerHTML = `<b>${I.icon} ${esc(I.short || I.id)} → ${p.n}</b><div style="margin-top:4px">✅ <b>為什麼能測：</b>${m.why}</div>${m.limit ? `<div style="margin-top:4px">⚠️ <b>限制：</b>${m.limit}</div>` : ''}<div style="margin-top:6px"><a href="javascript:void(0)" onclick="go('instr','${I.id}')">→ 進入 ${esc(I.short || I.id)} 圖鑑</a></div>`; typeset($('#mtip', V)); });
+  const mix = XC.mix || [], mq = $('#mixq', V);
+  mix.forEach((q, j) => mq.appendChild(renderQ(q, 'IM:#' + j, { ch: 'I', onDone: () => { if (mix.every((x, i) => S.quiz['IM:#' + i] && S.quiz['IM:#' + i].ok) && !(S.instDone || {})._mix) { S.instDone = S.instDone || {}; S.instDone._mix = 1; save(); addXP(20, '完成儀器綜合挑戰'); } } })));
+  if (!mix.length) mq.innerHTML = '<div class="muted">（題目準備中）</div>';
+}
+function instrUses(I) {   // 專題卡證據鏈中標註此儀器的列 ＋ 雲端新增的用例
+  const L = [];
+  XC.themes.forEach(T => (T.papers || []).forEach(p => (p.evidence || []).forEach(e => { if ((e[3] || []).includes(I.id)) L.push({ t: e[0], src: p.short || p.cite || '', seen: e[1], claim: e[0], gap: e[2], theme: T.id, date: T.updated || T.added }); })));
+  return L.concat(I.uses || []);
+}
+function renderInstr(V, I) {
+  const ths = XC.themes.filter(T => (T.instr || []).includes(I.id));
+  V.innerHTML = `<div class="card"><button class="btn ghost small" onclick="go('instr')">← 回儀器寶鑑</button>
+      <h2 style="margin:6px 0 2px">${I.icon} ${esc(I.name)}${isRecent(I.added) ? ' <span class="pill red">🆕 新收錄</span>' : ''}</h2><div class="muted">${esc(I.en || '')}</div>
+      <div style="margin-top:4px">${(I.cat || []).map(c => `<span class="pill gray">${c}</span>`).join('')}</div>
+      ${I.proto ? `<div class="proto">🚧 ${I.proto}</div>` : ''}
+      <div class="sec plain"><div class="h">🌱 白話說</div>${I.plain || ''}</div>
+      <div class="sec deep"><div class="h">🔬 原理（專業說明）</div>${I.principle || ''}</div>
+      ${I.figs ? `<div class="sec figs"><div class="h">🖼️ 圖解</div>${figsHTML(I.figs)}</div>` : ''}
+      <div class="sec form"><div class="h">📏 能測什麼？為什麼能測？限制在哪？</div><div class="tblwrap"><table class="meas"><tr><th>性質</th><th>為什麼能測（物理依據）</th><th>限制與注意</th></tr>
+        ${(I.measures || []).map(m => `<tr><td><b>${(XC.props.find(p => p.id === m.p) || {}).n || m.p}</b>${m.lv === 'o' ? '<br><span class="muted" style="font-size:12px">（間接）</span>' : ''}</td><td>${m.why}</td><td>${m.limit || ''}</td></tr>`).join('')}</table></div></div>
+      ${(I.formulas || []).length ? `<div class="sec form"><div class="h">📐 關鍵公式</div>${I.formulas.map(formulaCard).join('')}</div>` : ''}
+      ${I.cond ? `<div class="sec pre"><div class="h">⚙️ 量測條件與樣品要求</div><ul>${I.cond.map(x => `<li>${x}</li>`).join('')}</ul></div>` : ''}
+      ${I.traps ? `<div class="sec ext"><div class="h">⚠️ 常見陷阱（審稿人會問的）</div><ul>${I.traps.map(x => `<li>${x}</li>`).join('')}</ul></div>` : ''}
+    </div>
+    ${I.tool ? `<div class="card tool" id="itool"><h3 style="margin-top:0">🧪 動手模擬</h3></div>` : ''}
+    ${(I.examples || []).length ? `<div class="card"><h3 style="margin:0">📄 文獻判讀範例：🔍 數據偵探</h3><div class="muted" style="font-size:13px">每個範例都分三步：量到什麼 → 作者怎麼解讀 → 這個解讀還缺什麼證據。先自己想，再看答案。</div><div id="iex"></div></div>` : ''}
+    ${(I.quiz || []).length ? `<div class="card"><h3 style="margin:0">🎯 練習：選對儀器・🕵️ 找碴</h3><div class="muted" style="font-size:13px">範例與練習全部答對即「通關」這台儀器（+20 XP）。</div><div id="iq"></div></div>` : ''}
+    ${instrUses(I).length ? `<div class="card"><h3 style="margin:0">📚 文獻用例（${instrUses(I).length}）</h3><div class="muted" style="font-size:13px">收錄的論文中，這台儀器被用來證明什麼、證明到什麼程度。新論文進來時會自動增加。</div>
+      ${instrUses(I).map(u => `<details class="exbox"><summary><b>${u.t}</b> <span class="muted" style="font-size:12.5px">${u.src || ''}</span>${isRecent(u.date) ? ' <span class="pill red">本週新增</span>' : ''}</summary>
+        <div class="read3"><div class="r1"><b>① 量到什麼／用來證明</b><br>${u.seen || ''}</div><div class="r2"><b>② 作者解讀</b><br>${u.claim || ''}</div><div class="r3"><b>③ 還缺什麼證據</b><br>${u.gap || ''}</div></div>
+        ${u.theme ? `<div style="font-size:13px">↪ 出自專題比較卡：<a href="javascript:void(0)" onclick="go('frontier','${u.theme}')">${esc((XC.themes.find(T => T.id === u.theme) || {}).title || u.theme)}</a></div>` : ''}</details>`).join('')}</div>` : ''}
+    <div class="card"><h3 style="margin:0 0 6px">🔗 相關</h3>${(I.concepts || []).length ? `<div>課程觀念：${I.concepts.map(conceptChip).join('')}</div>` : ''}${ths.length ? `<div style="margin-top:6px">使用這台儀器的專題比較卡：${ths.map(T => `<a href="javascript:void(0)" onclick="go('frontier','${T.id}')">${esc(T.title)}</a>`).join('、')}</div>` : ''}</div>`;
+  if (!(S.instSeen || {})[I.id]) { S.instSeen = S.instSeen || {}; S.instSeen[I.id] = 1; save(); addXP(5, '閱讀儀器：' + (I.short || I.id)); Rec.send('instr', { item: I.id }); }
+  drawFigs(V, I.figs);
+  if (I.tool) { const t = TOOLS.find(x => x.id === I.tool); if (t) { const d = $('#itool', V); d.insertAdjacentHTML('beforeend', `<b>${t.icon} ${t.name}</b><div class="muted" style="font-size:14px">${t.desc}</div>`); t.build(d); } }
+  const keys = [], check = () => { if (keys.every(k => S.quiz[k] && S.quiz[k].ok) && !(S.instDone || {})[I.id]) { S.instDone = S.instDone || {}; S.instDone[I.id] = Date.now(); save(); addXP(20, '通關儀器：' + (I.short || I.id)); checkBadges(); } };
+  const ex = $('#iex', V);
+  (I.examples || []).forEach((E, j) => {
+    const b = document.createElement('div'); b.className = 'exbox';
+    b.innerHTML = `<b>範例 ${j + 1}：${E.title}</b><div class="muted" style="font-size:12.5px">${E.src || ''}</div>${figsHTML([E.fig])}
+      <details><summary style="cursor:pointer;color:#4338ca;font-weight:700">先想想：從這張圖你會得出什麼結論？（點開看三步解讀）</summary>
+      <div class="read3"><div class="r1"><b>① 量到什麼</b><br>${E.seen}</div><div class="r2"><b>② 作者解讀</b><br>${E.claim}</div><div class="r3"><b>③ 還缺什麼證據</b><br>${E.gap}</div></div></details><div class="eq"></div>`;
+    ex.appendChild(b); const cv = $('canvas', b); if (cv && E.fig.plot) requestAnimationFrame(() => plot(cv, buildPlot(E.fig.plot)));
+    (E.quiz || []).forEach((q, k) => { const key = 'I:' + I.id + ':e' + j + '#' + k; keys.push(key); $('.eq', b).appendChild(renderQ(q, key, { ch: 'I', onDone: check })); });
+  });
+  const iq = $('#iq', V);
+  (I.quiz || []).forEach((q, j) => { const key = 'I:' + I.id + '#' + j; keys.push(key); const w = renderQ(q, key, { ch: 'I', onDone: check }); if (q.tag) $('.qt', w).insertAdjacentHTML('afterbegin', `<span class="pill ${q.tag === '找碴' ? 'red' : 'green'}">${q.tag === '找碴' ? '🕵️ 找碴' : '🎯 ' + q.tag}</span> `); iq.appendChild(w); });
+  typeset(V);
+}
+
 function viewTools(V) {
   V.innerHTML = `<div class="card"><h2 style="margin:0">🧪 模擬實驗室</h2><div class="muted">拉動滑桿，親眼看公式在做什麼。每個工具第一次使用都有 XP。</div>
     <div style="margin-top:8px">${TOOLS.map(t => `<button class="btn ghost small" style="margin:3px" onclick="document.getElementById('tl_${t.id}').scrollIntoView({behavior:'smooth'})">${t.icon} ${t.name}</button>`).join('')}</div></div><div id="tls"></div>`;
   const T = $('#tls', V);
   let lastC = null;
-  TOOLS.slice().sort((a, b) => ((a.course || 'pv') === 'pv' ? 0 : 1) - ((b.course || 'pv') === 'pv' ? 0 : 1)).forEach(t => {
+  TOOLS.slice().sort((a, b) => ({ pv: 0, ec: 1, inst: 2 })[a.course || 'pv'] - ({ pv: 0, ec: 1, inst: 2 })[b.course || 'pv']).forEach(t => {
     const ck = t.course || 'pv';
-    if (ck !== lastC) { lastC = ck; T.insertAdjacentHTML('beforeend', `<h2 style="margin:18px 4px 6px">${COURSES[ck] ? COURSES[ck].icon + ' ' + COURSES[ck].name : ck}</h2>`); }
+    if (ck !== lastC) { lastC = ck; T.insertAdjacentHTML('beforeend', `<h2 style="margin:18px 4px 6px">${COURSES[ck] ? COURSES[ck].icon + ' ' + COURSES[ck].name : ck === 'inst' ? '🔬 儀器寶鑑' : ck}</h2>`); }
     const d = document.createElement('div'); d.className = 'card tool'; d.id = 'tl_' + t.id;
     d.innerHTML = `<h3 style="margin-top:0">${t.icon} ${t.name}</h3><div class="muted" style="font-size:14px">${t.desc}</div>`;
     T.appendChild(d); t.build(d);
@@ -1749,6 +1917,107 @@ TOOLS.push({ id: 'ec_pvec', course: 'ec', icon: '🔌', name: 'PV-EC 工作點�
     });
   } });
 
+/* ===================== 儀器分析模擬器 ===================== */
+/* ---- I1. XRD：Bragg 與 Scherrer ---- */
+TOOLS.push({ id: 'inst_xrd', course: 'inst', icon: '💎', name: 'XRD 圖譜模擬：峰位、晶格與晶粒大小', desc: '勾選樣品中存在的相、調整晶格常數與晶粒大小，看峰位怎麼移動（Bragg）、峰寬怎麼變（Scherrer），以及雜相峰出現在哪裡。以 Cu Kα（λ = 1.5406 Å）、鈣鈦礦薄膜為例。',
+  build(d) {
+    d.insertAdjacentHTML('beforeend', `<div class="ctl">${slider('ix_a', '立方鈣鈦礦晶格常數 a (Å)', 6.20, 6.45, 0.01, 6.36)}${slider('ix_L', '晶粒大小 L (nm)', 5, 150, 1, 40)}
+      ${slider('ix_pb', 'PbI₂ 殘留（相對強度 %）', 0, 60, 1, 0)}${slider('ix_d', 'δ 相（黃相）（%）', 0, 60, 1, 0)}${slider('ix_2d', '2D 相 PEA₂PbI₄（n = 1）（%）', 0, 60, 1, 0)}</div>
+      <canvas id="ix_cv" style="height:260px"></canvas><div class="out" id="ix_o"></div>
+      <div class="analogy">🍼 判讀：峰往<b>高角度</b>移 → d 變小 → 晶格收縮（例如摻入較小的 Cs⁺、Br⁻）；峰變<b>寬</b> → 晶粒小或微應變大。12.7° 是 PbI₂、11.8° 是 δ 相、5° 附近的低角度峰常是 2D 層狀相——這幾個位置是鈣鈦礦論文最常被檢查的地方。</div>`);
+    const cv = $('#ix_cv', d), lam = 1.5406, inst = 0.08;
+    const hkl = [[1, 0, 0, 100], [1, 1, 0, 14], [1, 1, 1, 22], [2, 0, 0, 70], [2, 1, 0, 15], [2, 1, 1, 22], [2, 2, 0, 12]];
+    const tth = dd => 2 * Math.asin(lam / (2 * dd)) * 180 / Math.PI;
+    bindSliders(d, () => {
+      const a = sv(d, 'ix_a'), L = sv(d, 'ix_L') * 10, fpb = sv(d, 'ix_pb'), fd = sv(d, 'ix_d'), f2 = sv(d, 'ix_2d');
+      const fw = t => { const th = t / 2 * Math.PI / 180, b = 0.9 * lam / (L * Math.cos(th)) * 180 / Math.PI; return Math.sqrt(b * b + inst * inst); };
+      const peaks = hkl.map(([h, k, l, I]) => { const t = tth(a / Math.sqrt(h * h + k * k + l * l)); return { t, I, w: fw(t) }; });
+      const imp = [[12.7, fpb, 0.12], [25.9, fpb * 0.25, 0.15], [11.8, fd, 0.12], [26.2, fd * 0.3, 0.15], [5.4, f2, 0.1], [10.8, f2 * 0.6, 0.1], [16.3, f2 * 0.35, 0.1]];
+      imp.forEach(([t, I, w]) => I > 0 && peaks.push({ t, I, w }));
+      const pts = []; for (let x = 3; x <= 42; x += 0.02) { let y = 2; peaks.forEach(p => { const s = p.w / 2.3548; y += p.I * Math.exp(-((x - p.t) ** 2) / (2 * s * s)); }); pts.push([x, y]); }
+      const ym = Math.max(...pts.map(p => p[1]));
+      plot(cv, { x: [3, 42], y: [0, ym * 1.12], xl: '2θ (°)，Cu Kα', yl: '強度（任意單位）', series: [{ pts, c: '#2563eb', w: 1.6 }],
+        texts: [{ x: peaks[0].t - 1, y: ym * 1.05, t: '(100)', c: '#1d4ed8' }, { x: peaks[3].t - 1, y: 70 * 1.05 + 2, t: '(200)', c: '#1d4ed8' }].concat(fpb ? [{ x: 12.2, y: fpb + 8, t: 'PbI₂', c: '#dc2626' }] : []).concat(fd ? [{ x: 10.6, y: fd + 18, t: 'δ', c: '#a16207' }] : []).concat(f2 ? [{ x: 4.2, y: f2 + 8, t: '2D', c: '#7c3aed' }] : []) });
+      const p0 = peaks[0], beta = Math.sqrt(Math.max(p0.w ** 2 - inst ** 2, 1e-6)) * Math.PI / 180, Ls = 0.9 * lam / (beta * Math.cos(p0.t / 2 * Math.PI / 180)) / 10;
+      $('#ix_o', d).innerHTML = `<div>(100) 峰位 2θ = <b>${p0.t.toFixed(2)}°</b>　d = a = <b>${a.toFixed(2)}</b> Å</div><div>(100) 半高寬 FWHM = <b>${p0.w.toFixed(3)}°</b>（含儀器展寬 ${inst}°）</div>
+        <div>扣除儀器展寬後 Scherrer 估算 L ≈ <b>${Ls.toFixed(0)}</b> nm${L > 1000 ? '' : ''}${sv(d, 'ix_L') > 100 ? '　⚠️ L > 100 nm 時峰寬已接近儀器極限，Scherrer 估計不可靠' : ''}</div>
+        <div>PbI₂／(100) 強度比 = <b>${(fpb / 100).toFixed(2)}</b>${fpb ? '（只代表繞射強度比，不等於重量比）' : ''}</div>`;
+    });
+  } });
+
+/* ---- I2. UV-vis：Tauc 與 Urbach ---- */
+TOOLS.push({ id: 'inst_tauc', course: 'inst', icon: '🌈', name: 'UV-vis 吸收：Tauc 作圖與 Urbach 尾', desc: '產生一條「真實」的吸收光譜（含帶尾），再用 Tauc 作圖外推能隙。試試看：用錯指數（直接/間接）或帶尾變寬時，外推出的能隙會偏多少？',
+  build(d) {
+    d.insertAdjacentHTML('beforeend', `<div class="ctl">${slider('it_eg', '真實能隙 E_g (eV)', 1.2, 2.4, 0.01, 1.60)}${slider('it_eu', 'Urbach 能量 E_U (meV)', 10, 80, 1, 15)}
+      <label>材料真實躍遷：<select id="it_ty"><option value="d">直接能隙（鈣鈦礦、GaAs）</option><option value="i">間接能隙（Si、許多氧化物）</option></select></label>
+      <label>你用的 Tauc 指數：<select id="it_r"><option value="2">(αhν)²（假設直接）</option><option value="0.5">(αhν)^½（假設間接）</option></select></label></div>
+      <canvas id="it_cv1" style="height:230px"></canvas><canvas id="it_cv2" style="height:200px"></canvas><div class="out" id="it_o"></div>
+      <div class="analogy">🍼 Tauc 法的前提是「知道躍遷型態」並在帶邊上方找到一段直線；帶尾（E_U 大）會讓外推值偏低。鈣鈦礦這類有強激子吸收或帶尾的材料，也常用 EQE 或 PL 峰的反曲點來定能隙。</div>`);
+    const c1 = $('#it_cv1', d), c2 = $('#it_cv2', d);
+    bindSliders(d, () => {
+      const Eg = sv(d, 'it_eg'), EU = sv(d, 'it_eu') / 1000, ty = $('#it_ty', d).value, r = +$('#it_r', d).value;
+      const sp = x => x > 30 ? x : Math.log(1 + Math.exp(x));
+      const alpha = E => ty === 'd' ? 1.5e5 * Math.sqrt(EU / 2 * sp(2 * (E - Eg) / EU)) : 4e3 * (2 * EU * sp((E - Eg) / (2 * EU))) ** 2;
+      const E0 = Eg - 0.35, E1 = Eg + 0.6, T = [];
+      for (let E = E0; E <= E1; E += 0.002) T.push([E, (alpha(E) * E) ** r]);
+      // 自動外推：在 y 介於 30–70 % 最大值區段做線性擬合
+      const ymax = T[T.length - 1][1], seg = T.filter(p => p[1] > 0.25 * ymax && p[1] < 0.6 * ymax);
+      let sx = 0, sy = 0, sxx = 0, sxy = 0; seg.forEach(([x, y]) => { sx += x; sy += y; sxx += x * x; sxy += x * y; }); const nn = seg.length;
+      const m = (nn * sxy - sx * sy) / (nn * sxx - sx * sx), b = (sy - m * sx) / nn, Ex = -b / m;
+      plot(c1, { x: [E0, E1], y: [0, ymax * 1.05], xl: 'hν (eV)', yl: r === 2 ? '(αhν)²' : '(αhν)^½', yfmt: () => '', series: [{ pts: T, c: '#2563eb' }, { pts: [[Ex, 0], [E1, m * E1 + b]], c: '#dc2626', dash: [6, 3], label: '線性外推' }],
+        vlines: [{ x: Eg, label: '真實 E_g', c: '#16a34a' }], dots: [{ x: Ex, y: 0, c: '#dc2626', label: 'E_g,Tauc' }] });
+      plot(c2, buildPlot({ x: [E0, E1], y: [0, 6], xl: 'hν (eV)', yl: 'log₁₀ α (cm⁻¹)', series: [{ f: E => Math.log10(Math.max(alpha(E), 1)), c: '#7c3aed', label: '帶尾斜率 = 1/(E_U ln10)', lp: 60 }], vlines: [{ x: Eg, c: '#16a34a' }] }));
+      const err = (Ex - Eg) * 1000;
+      $('#it_o', d).innerHTML = `<div>Tauc 外推 E_g = <b>${Ex.toFixed(3)}</b> eV　（真實 ${Eg.toFixed(2)} eV，誤差 <b>${err > 0 ? '+' : ''}${err.toFixed(0)}</b> meV）</div>
+        <div>${(ty === 'd') !== (r === 2) ? '⚠️ 指數用錯了：躍遷型態與作圖方式不一致，外推值沒有物理意義。' : '✓ 指數與躍遷型態一致。'}</div><div>吸收邊下方 log α 的斜率 → E_U = ${(EU * 1000).toFixed(0)} meV（越小代表越有序、缺陷越少）</div>`;
+    });
+  } });
+
+/* ---- I3. TRPL：衰減曲線與激發強度 ---- */
+TOOLS.push({ id: 'inst_trpl', course: 'inst', icon: '⏱️', name: 'TRPL 衰減：壽命、激發強度與「PL 壽命 ≠ 載子壽命」', desc: '以 dn/dt = −k₁n − k₂n² − k₃n³ 模擬鈣鈦礦薄膜（本質、n = p）的 PL 衰減（PL ∝ n²），比較不同激發強度。看看擬合出的「PL 壽命」和 SRH 壽命 1/k₁ 差在哪裡。',
+  build(d) {
+    d.insertAdjacentHTML('beforeend', `<div class="ctl">${slider('ip_t1', 'SRH 壽命 τ₁ = 1/k₁ (ns)', 10, 3000, 10, 500)}${slider('ip_k2', 'log₁₀ k₂ (cm³/s)', -11, -9, 0.1, -10, 'exp')}
+      ${slider('ip_n0', 'log₁₀ 初始載子密度 n₀ (cm⁻³)', 14, 18, 0.1, 15.5, 'exp')}</div>
+      <canvas id="ip_cv" style="height:250px"></canvas><div class="out" id="ip_o"></div>
+      <div class="analogy">🍼 本質半導體高注入時 PL ∝ n²，所以低密度尾段的 PL 衰減時間是 τ₁/2，不是 τ₁；激發太強時前段被輻射（∝ n²）主導而衰減很快。報告 TRPL 一定要寫激發密度（nJ/cm² 或 cm⁻³），並說明 PL ∝ n 還是 n²（摻雜型材料 PL ∝ n·N）。</div>`);
+    const cv = $('#ip_cv', d);
+    const run = (n0, k1, k2) => { const k3 = 1e-28, out = []; let n = n0, t = 0; const tend = 6 / k1, dt0 = tend / 4000;
+      for (let i = 0; i <= 4000; i++) { out.push([t * 1e9, n]); const f = m => -k1 * m - k2 * m * m - k3 * m * m * m; const h = dt0; const a1 = f(n), a2 = f(n + h / 2 * a1), a3 = f(n + h / 2 * a2), a4 = f(n + h * a3); n += h / 6 * (a1 + 2 * a2 + 2 * a3 + a4); t += h; if (n < n0 * 1e-6) break; } return out; };
+    bindSliders(d, () => {
+      const t1 = sv(d, 'ip_t1') * 1e-9, k1 = 1 / t1, k2 = Math.pow(10, sv(d, 'ip_k2')), n0 = Math.pow(10, sv(d, 'ip_n0'));
+      const A = run(n0, k1, k2), B = run(1e14, k1, k2);
+      const toPL = (L, n0x) => L.map(([t, n]) => [t, Math.log10((n / n0x) ** 2)]);
+      const pa = toPL(A, n0), pb = toPL(B, 1e14), tmax = 6 * t1 * 1e9 * 0.6;
+      const e1 = arr => { const p = arr.find(q => q[1] < -1 / Math.LN10); return p ? p[0] : NaN; };
+      plot(cv, buildPlot({ x: [0, tmax], y: [-4, 0.1], xl: '時間 t (ns)', yl: 'log₁₀ PL(t)/PL(0)', series: [{ pts: pa, c: '#dc2626', label: '你的激發強度', lp: 60 }, { pts: pb, c: '#2563eb', dash: [6, 3], label: '低激發 n₀ = 10¹⁴', lp: 200 },
+        { f: t => -2 * t / (t1 * 1e9) / Math.LN10, c: '#9ca3af', dash: [2, 3], label: '斜率對應 τ₁/2', lp: 120 }] }));
+      $('#ip_o', d).innerHTML = `<div>SRH 載子壽命 τ₁ = <b>${(t1 * 1e9).toFixed(0)}</b> ns　→ 低激發 PL 尾段衰減時間 = τ₁/2 = <b>${(t1 * 5e8).toFixed(0)}</b> ns</div>
+        <div>PL 降到 1/e 的時間：你的條件 <b>${e1(pa).toFixed(0)}</b> ns；低激發 <b>${e1(pb).toFixed(0)}</b> ns</div>
+        <div>初始時輻射項與 SRH 項比值 k₂n₀/k₁ = <b>${fmtE(k2 * n0 / k1)}</b>${k2 * n0 / k1 > 1 ? '　→ 前段由雙分子（輻射）複合主導，曲線不是單指數' : ''}</div>`;
+    });
+  } });
+
+/* ---- I4. SCLC：單載子元件的陷阱填滿與 Mott–Gurney ---- */
+TOOLS.push({ id: 'inst_sclc', course: 'inst', icon: '🪤', name: 'SCLC：陷阱密度與遷移率', desc: '單載子元件（只讓電子或只讓電洞通過）的暗 J–V，在雙對數圖上分成歐姆區（斜率 1）、陷阱填滿區（陡升）與 Child 區（斜率 2）。調整陷阱密度、厚度與遷移率，看 V_TFL 與 Mott–Gurney 電流怎麼變。',
+  build(d) {
+    d.insertAdjacentHTML('beforeend', `<div class="ctl">${slider('sc_nt', 'log₁₀ 陷阱密度 n_t (cm⁻³)', 14, 17, 0.1, 15.5, 'exp')}${slider('sc_L', '厚度 L (nm)', 200, 1500, 10, 500)}
+      ${slider('sc_mu', 'log₁₀ 遷移率 μ (cm²/V·s)', -2, 1.5, 0.1, 0, 'exp')}${slider('sc_er', '相對介電常數 ε_r', 10, 60, 1, 30)}</div>
+      <canvas id="sc_cv" style="height:250px"></canvas><div class="out" id="sc_o"></div>
+      <div class="analogy">🍼 判讀：V_TFL ∝ n_t L²，所以陷阱越少、膜越薄，陡升點越早出現。Child 區的電流 ∝ μV²/L³，可反推遷移率。鈣鈦礦有可動離子，量測要用脈衝或快速掃描，否則離子會改變曲線（13-6、13-8）。</div>`);
+    const cv = $('#sc_cv', d), q = 1.602e-19, e0 = 8.854e-14;
+    bindSliders(d, () => {
+      const nt = Math.pow(10, sv(d, 'sc_nt')), L = sv(d, 'sc_L') * 1e-7, mu = Math.pow(10, sv(d, 'sc_mu')), er = sv(d, 'sc_er');
+      const VT = q * nt * L * L / (2 * er * e0), n0 = 1e11, th0 = 1e-4;
+      const J = V => q * n0 * mu * V / L + 9 / 8 * er * e0 * mu * V * V / (L ** 3) * (th0 + (1 - th0) / (1 + Math.pow(VT / V, 12)));
+      plot(cv, buildPlot({ x: [-2, 1.5], y: [-8, 2], xl: 'log₁₀ V (V)', yl: 'log₁₀ J (A/cm²)', series: [
+        { f: x => Math.log10(J(10 ** x)), c: '#2563eb', label: '單載子元件暗 J–V', lp: 240 },
+        { f: x => Math.log10(9 / 8 * er * e0 * mu * 10 ** (2 * x) / L ** 3), c: '#9ca3af', dash: [4, 3], label: 'Mott–Gurney（無陷阱）', lp: 60 }],
+        vlines: VT > 0.01 && VT < 30 ? [{ x: Math.log10(VT), label: 'V_TFL', c: '#dc2626' }] : [] }));
+      $('#sc_o', d).innerHTML = `<div>陷阱填滿電壓 V_TFL = q·n_t·L²/(2εε₀) = <b>${fmtE(VT)}</b> V${VT > 30 ? '（超出量測範圍：陷阱太多或膜太厚）' : ''}</div>
+        <div>由 V_TFL 反推：n_t = 2εε₀V_TFL/(qL²) = <b>${fmtE(nt)}</b> cm⁻³</div><div>Child 區 J/V² = 9εε₀μ/(8L³) → 斜率可得 μ = <b>${fmtE(mu)}</b> cm²/V·s</div>`;
+    });
+  } });
+
 
 /* ---------------- boot ---------------- */
 async function tryTicket(pass, silent) {
@@ -1789,7 +2058,7 @@ async function doLogin(sid, name, nick, silent) {
   const m = h.match(/ch=(\d+)/);
   if (!getPlace(S.course || 'pv') && !placeSkipped(S.course || 'pv')) go('placement', S.course || 'pv');
   else if (m && CH.find(c => c.id === +m[1]) && unlocked(CH.find(c => c.id === +m[1]))) go('chapter', +m[1]);
-  else if (/#(tools|formulas|glossary|wrong|hall|me|frontier)\b/.test(h)) go(h.slice(1).split(/[&?]/)[0]);
+  else if (/#(tools|formulas|glossary|wrong|hall|me|frontier|instr)\b/.test(h)) go(h.slice(1).split(/[&?]/)[0]);
   else go('map');
 }
 $('#tabs').addEventListener('click', e => { const b = e.target.closest('button'); if (b) go(b.dataset.v); });

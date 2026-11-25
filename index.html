@@ -98,6 +98,9 @@ h2,h3,h4{line-height:1.35}
 .sec.form{border-color:#0891b2} .sec.form>.h{color:#0e7490}
 .sec.ext{border-color:#db2777} .sec.ext>.h{color:#be185d}
 .sec.quiz{border-color:var(--green)} .sec.quiz>.h{color:var(--green)}
+.sec.derive{border-color:#7c3aed} .sec.derive>summary.h{color:#6d28d9;cursor:pointer}
+.dtab{border-collapse:collapse;font-size:14px;margin:8px 0} .dtab td,.dtab th{border:1px solid #e5e7eb;padding:3px 8px;text-align:right} .dtab th{background:#f3f4f6}
+.dplot{width:100%;max-width:560px;height:260px;display:block;margin:6px 0}
 .prebox{background:#f5f3ff;border-radius:10px;padding:8px 12px;margin:6px 0}
 .prebox b{color:#5b21b6}
 details{margin:6px 0}
@@ -236,7 +239,7 @@ table.data th{background:#f8f5ec}
 <div id="modal" class="hidden"><div class="box" id="modalBox"></div></div>
 
 <script src="config.js"></script>
-<script src="content.enc.js"></script>
+<script src="content.enc.js?v=4f85096b0d"></script>
 <script>
 /* 設定在 config.js（老師可直接在 GitHub 網頁上編輯）；加密內容在 content.enc.js */
 const CONFIG = Object.assign({ API: '', ROSTER: false, FREE_ROAM: false, BOSS_REQ: 0.6 }, window.PVQ_CONFIG || {});
@@ -572,6 +575,7 @@ function renderConcept(c, k, i) {
     ${sec('pre', '🔑 先備知識：讀這個觀念前要知道的事', pre)}
     ${sec('deep', '🔬 觀念解析', k.deep)}
     ${sec('form', '🧾 重要公式與它的內涵', fm)}
+    ${k.derive ? `<details class="sec derive"><summary class="h">✏️ 推導（碩士進階，專題生可先跳過）</summary>${k.derive.map((st, j) => `<div class="step"><div class="sh">第 ${j + 1} 步｜${st.h}</div><div>${st.c}</div></div>`).join('')}</details>` : ''}
     ${k.terms ? sec('pre', '🔤 英文術語（讀論文必備）', '<table class="data" style="width:100%">' + k.terms.map(t => `<tr><td style="white-space:nowrap"><b>${t[0]}</b></td><td style="white-space:nowrap">${t[1]}</td><td>${t[2] || ''}</td></tr>`).join('') + '</table>') : ''}
     ${sec('ext', '🚀 延伸與連結', k.ext)}
     ${frontierFor(k.id)}
@@ -672,6 +676,19 @@ function checkConceptPass(c, k) {
 }
 
 /* ---------------- calculation problems ---------------- */
+function dataBlock(D) {
+  const tbl = `<table class="dtab"><tr>${D.cols.map(c => `<th>${c}</th>`).join('')}</tr>${D.rows.map(r => `<tr>${r.map(v => `<td>${v}</td>`).join('')}</tr>`).join('')}</table>`;
+  return `<div class="databox">${D.note ? `<div class="muted" style="font-size:13px">${D.note}</div>` : ''}${D.plot ? '<canvas class="dplot"></canvas>' : ''}<details${D.plot ? '' : ' open'}><summary class="muted">📋 數據表（可複製到 Excel 擬合）</summary>${tbl}</details></div>`;
+}
+function drawData(d, D) {
+  const cv = d.querySelector('canvas.dplot'); if (!cv) return;
+  const P = D.plot, tx = v => P.logx ? Math.log10(v) : v, ty = v => P.logy ? Math.log10(v) : v;
+  const pts = D.rows.map(r => [tx(+r[P.x]), ty(+r[P.y])]).filter(p => isFinite(p[0]) && isFinite(p[1]));
+  const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+  const pad = (a, b) => { const m = (b - a) * 0.08 || 1; return [a - m, b + m]; };
+  const series = P.line ? [{ pts, c: '#2563eb' }] : [];
+  plot(cv, { x: P.xr || pad(Math.min(...xs), Math.max(...xs)), y: P.yr || pad(Math.min(...ys), Math.max(...ys)), xl: P.xl, yl: P.yl, series, dots: P.line ? [] : pts.map(p => ({ x: p[0], y: p[1], c: '#ef4444' })) });
+}
 function renderProblems(c, el) {
   if (!c.problems || !c.problems.length) return;
   el.innerHTML = `<div class="card"><h3 style="margin:0">🧮 習題演練與計算</h3><div class="muted" style="font-size:14px">先自己算！卡住時再逐步打開提示（每打開一步，這題得到的 XP 會少一點）。答案允許約 ±3–5% 的誤差。</div></div>`;
@@ -680,6 +697,7 @@ function renderProblems(c, el) {
     const st = S.prob[p.id] || {};
     d.innerHTML = `<div><span class="pill ${st.ok ? 'green' : 'sun'}">${st.ok ? '已解出' : p.id}</span> <b>${p.title || ''}</b> <span class="lvl">${'★'.repeat(p.lvl || 1)}</span></div>
       <div style="margin-top:6px">${p.q}</div>
+      ${p.data ? dataBlock(p.data) : ''}
       <div class="steps"></div>
       <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost small hintb">💡 下一步提示 (0/${(p.steps || []).length})</button></div>
       <div class="ans"></div>${p.src ? `<div class="srcline">📚 ${p.src}</div>` : ''}`;
@@ -733,6 +751,7 @@ function renderProblems(c, el) {
       d.appendChild(det);
     }
     el.appendChild(d);
+    if (p.data && p.data.plot) requestAnimationFrame(() => drawData(d, p.data));
   });
 }
 
@@ -1109,7 +1128,10 @@ function viewTools(V) {
   V.innerHTML = `<div class="card"><h2 style="margin:0">🧪 模擬實驗室</h2><div class="muted">拉動滑桿，親眼看公式在做什麼。每個工具第一次使用都有 XP。</div>
     <div style="margin-top:8px">${TOOLS.map(t => `<button class="btn ghost small" style="margin:3px" onclick="document.getElementById('tl_${t.id}').scrollIntoView({behavior:'smooth'})">${t.icon} ${t.name}</button>`).join('')}</div></div><div id="tls"></div>`;
   const T = $('#tls', V);
-  TOOLS.forEach(t => {
+  let lastC = null;
+  TOOLS.slice().sort((a, b) => ((a.course || 'pv') === 'pv' ? 0 : 1) - ((b.course || 'pv') === 'pv' ? 0 : 1)).forEach(t => {
+    const ck = t.course || 'pv';
+    if (ck !== lastC) { lastC = ck; T.insertAdjacentHTML('beforeend', `<h2 style="margin:18px 4px 6px">${COURSES[ck] ? COURSES[ck].icon + ' ' + COURSES[ck].name : ck}</h2>`); }
     const d = document.createElement('div'); d.className = 'card tool'; d.id = 'tl_' + t.id;
     d.innerHTML = `<h3 style="margin-top:0">${t.icon} ${t.name}</h3><div class="muted" style="font-size:14px">${t.desc}</div>`;
     T.appendChild(d); t.build(d);
@@ -1338,6 +1360,141 @@ TOOLS.push({ id: 'carrier', icon: '⚛️', name: '載子濃度、費米能階�
       const Ei = 0, half = Eg / 2;
       plot(cv, { x: [0, 1], y: [-0.8, 0.8], xl: '', yl: '能量 (eV)', xfmt: () => '', series: [{ pts: [[0, half], [1, half]], c: '#2563eb', label: 'Ec' }, { pts: [[0, -half], [1, -half]], c: '#dc2626', label: 'Ev' },
         { pts: [[0, Ei], [1, Ei]], c: '#9ca3af', dash: [2, 4], label: 'Ei（本質能階）', lp: 0 }, { pts: [[0, Math.max(-0.75, Math.min(0.75, EF))], [1, Math.max(-0.75, Math.min(0.75, EF))]], c: '#f59e0b', w: 3, dash: [8, 4], label: 'E_F', lp: 1 }] });
+    });
+  } });
+
+/* ===================== 課程二：電化學模擬器 ===================== */
+const EC = { F: 96485, R: 8.314 };
+const ecf = T => EC.F / (EC.R * T);   // 1/V
+
+/* ---- E1. Butler–Volmer 與 Tafel ---- */
+TOOLS.push({ id: 'ec_bv', course: 'ec', icon: '⚖️', name: 'Butler–Volmer 與 Tafel 圖', desc: '調整交換電流密度 j₀、轉移係數 α 與極限電流 j_L，看極化曲線與 Tafel 圖怎麼變。對應課程二第 3、4、8 關。',
+  build(d) {
+    d.insertAdjacentHTML('beforeend', `<div class="ctl">${slider('bv_j0', 'log₁₀ j₀ (mA/cm²)', -6, 1, 0.1, -3, 'exp')}${slider('bv_aa', '陽極轉移係數 α_a', 0.1, 1.5, 0.05, 0.5)}
+      ${slider('bv_ac', '陰極轉移係數 α_c', 0.1, 1.5, 0.05, 0.5)}${slider('bv_jl', 'log₁₀ 極限電流 j_L (mA/cm²)', 0, 3, 0.05, 3, 'exp')}${slider('bv_t', '溫度 T (K)', 273, 353, 1, 298)}
+      <label>顯示：<select id="bv_mode"><option value="lin">極化曲線 j–η</option><option value="tafel" selected>Tafel 圖 log|j|–η</option></select></label></div>
+      <canvas id="bv_c"></canvas><div class="out" id="bv_o"></div>
+      <div class="analogy">🍼 看圖技巧：在 Tafel 圖上，大過電位區是直線，斜率倒數就是 Tafel 斜率 b；把直線外推到 η = 0 的截距就是 log j₀。j_L 變小時，曲線在高電流處被「壓平」——那是質傳限制，不是觸媒變差。</div>`);
+    const cv = $('#bv_c', d);
+    bindSliders(d, () => {
+      const j0 = Math.pow(10, sv(d, 'bv_j0')), aa = sv(d, 'bv_aa'), ac = sv(d, 'bv_ac'), jl = Math.pow(10, sv(d, 'bv_jl')), T = sv(d, 'bv_t'), f = ecf(T);
+      const J = e => { const a = j0 * Math.exp(aa * f * e), c = j0 * Math.exp(-ac * f * e); return (a - c) / (1 + a / jl + c / jl); };
+      const pts = [], pts2 = []; for (let i = 0; i <= 300; i++) { const e = -0.5 + i / 300; const j = J(e); pts.push([e, j]); pts2.push([e, Math.log10(Math.abs(j) || 1e-12)]); }
+      const ba = 2.303 / (aa * f) * 1000, bc = 2.303 / (ac * f) * 1000;
+      let lo = 0, hi = 1.5; for (let i = 0; i < 60; i++) { const m = (lo + hi) / 2; if (J(m) < 10) lo = m; else hi = m; }
+      const eta10 = J(1.5) < 10 ? null : (lo + hi) / 2;
+      if ($('#bv_mode', d).value === 'lin') plot(cv, { x: [-0.5, 0.5], y: [-Math.min(jl, 60) * 1.1, Math.min(jl, 60) * 1.1], xl: '過電位 η (V)', yl: 'j (mA/cm²)', series: [{ pts, c: '#2563eb' }] });
+      else plot(cv, { x: [-0.5, 0.5], y: [Math.log10(j0) - 2, Math.log10(jl) + 0.5], xl: '過電位 η (V)', yl: 'log₁₀|j| (mA/cm²)', series: [{ pts: pts2, c: '#2563eb' }, { pts: [[0, Math.log10(j0)], [0.5, Math.log10(j0) + 500 / ba]], c: '#f59e0b', dash: [5, 4] }, { pts: [[0, Math.log10(j0)], [-0.5, Math.log10(j0) + 500 / bc]], c: '#10b981', dash: [5, 4] }], dots: [{ x: 0, y: Math.log10(j0), label: 'log j₀' }] });
+      $('#bv_o', d).innerHTML = `<div>陽極 Tafel 斜率 b_a = <b>${ba.toFixed(0)}</b> mV/dec</div><div>陰極 Tafel 斜率 b_c = <b>${bc.toFixed(0)}</b> mV/dec</div>
+        <div>達到 10 mA/cm² 的陽極過電位 η₁₀ = <b>${eta10 == null ? '達不到（j_L 太小）' : (eta10 * 1000).toFixed(0) + ' mV'}</b></div><div>小過電位區電荷轉移電阻 R_ct = RT/(Fj₀) = <b>${fmtE(1 / (f * j0 * 1e-3))}</b> Ω·cm²</div>`;
+    });
+  } });
+
+/* ---- E2. 循環伏安 (CV) 數值模擬 ---- */
+TOOLS.push({ id: 'ec_cv', course: 'ec', icon: '🔄', name: '循環伏安 (CV) 模擬器', desc: '一電子氧化還原對 R ⇌ O + e⁻ 在平板電極上的擴散＋Butler–Volmer 有限差分模擬。改變掃速與 k⁰，看可逆→不可逆的變化、峰電位差 ΔEp 與 Randles–Ševčík 關係。對應課程二第 4、6 關。',
+  build(d) {
+    d.insertAdjacentHTML('beforeend', `<div class="ctl">${slider('cv_v', 'log₁₀ 掃速 v (V/s)', -3, 1, 0.1, -1.3, 'exp')}${slider('cv_k', 'log₁₀ 標準速率常數 k⁰ (cm/s)', -5, 0, 0.1, -1, 'exp')}
+      ${slider('cv_a', '轉移係數 α', 0.3, 0.7, 0.05, 0.5)}${slider('cv_c', '濃度 C (mM)', 0.5, 10, 0.5, 1)}${slider('cv_cdl', '雙電層電容 C_dl (µF/cm²)', 0, 200, 5, 20)}</div>
+      <canvas id="cv_cvs"></canvas><div class="out" id="cv_o"></div>
+      <div class="analogy">🍼 判讀：可逆（k⁰ 大、掃速慢）時 ΔEp ≈ 59 mV、峰電流 ∝ √v；k⁰ 變小或掃速變快，兩峰往外拉開（準可逆／不可逆）。C_dl 讓整條曲線上下「撐開」成一個矩形背景——這就是第 5 關用來量 ECSA 的電容電流。注意：回掃的陰極峰要從「正掃電流的延伸基線」量起，直接從 0 量會比陽極峰小。</div>`);
+    const cv = $('#cv_cvs', d);
+    bindSliders(d, () => {
+      const v = Math.pow(10, sv(d, 'cv_v')), k0 = Math.pow(10, sv(d, 'cv_k')), al = sv(d, 'cv_a'), C = sv(d, 'cv_c') * 1e-6, Cdl = sv(d, 'cv_cdl') * 1e-6;
+      const D = 1e-5, f = ecf(298), Ei = -0.35, Ev = 0.35, N = 1400, Ttot = 2 * (Ev - Ei) / v, dt = Ttot / N, dx = Math.sqrt(D * dt / 0.45), nx = Math.ceil(6 * Math.sqrt(D * Ttot) / dx) + 2, lam = D * dt / (dx * dx);
+      let R = new Float64Array(nx).fill(C), O = new Float64Array(nx).fill(0); const pts = [];
+      let ipa = 0, Epa = 0, ipc = 0, Epc = 0;
+      for (let s = 1; s <= N; s++) {
+        const t = s * dt, E = t <= Ttot / 2 ? Ei + v * t : Ev - v * (t - Ttot / 2), dir = t <= Ttot / 2 ? 1 : -1;
+        const R2 = R.slice(), O2 = O.slice();
+        for (let i = 1; i < nx - 1; i++) { R2[i] = R[i] + lam * (R[i + 1] - 2 * R[i] + R[i - 1]); O2[i] = O[i] + lam * (O[i + 1] - 2 * O[i] + O[i - 1]); }
+        const kf = k0 * Math.exp((1 - al) * f * E), kb = k0 * Math.exp(-al * f * E), h2 = D / (2 * dx), a = 4 * R2[1] - R2[2], Sm = (4 * (R2[1] + O2[1]) - (R2[2] + O2[2])) / 3;
+        R2[0] = (h2 * a + kb * Sm) / (3 * h2 + kf + kb); O2[0] = Sm - R2[0];
+        R = R2; O = O2;
+        const iF = EC.F * D / (2 * dx) * (4 * R[1] - R[2] - 3 * R[0]) * 1e3, i = iF + Cdl * v * dir * 1e3;   // mA/cm²
+        pts.push([E, i]);
+        if (dir > 0 && iF > ipa) { ipa = iF; Epa = E; } if (dir < 0 && iF < ipc) { ipc = iF; Epc = E; }
+      }
+      const iRS = 2.69e5 * 1 * Math.sqrt(D) * C * Math.sqrt(v) * 1e3;
+      const ys = pts.map(p => p[1]); const ymax = Math.max(...ys), ymin = Math.min(...ys), pad = (ymax - ymin) * 0.1;
+      plot(cv, { x: [Ei, Ev], y: [ymin - pad, ymax + pad], xl: 'E − E⁰′ (V)', yl: 'i (mA/cm²)', series: [{ pts, c: '#2563eb' }], dots: [{ x: Epa, y: ipa, label: 'Epa' }, { x: Epc, y: ipc, label: 'Epc' }] });
+      const Lam = k0 / Math.sqrt(D * f * v);
+      $('#cv_o', d).innerHTML = `<div>陽極峰 i_pa = <b>${ipa.toFixed(3)}</b> mA/cm²，E_pa = ${(Epa * 1000).toFixed(0)} mV</div><div>陰極峰 i_pc = <b>${ipc.toFixed(3)}</b> mA/cm²，E_pc = ${(Epc * 1000).toFixed(0)} mV</div>
+        <div>ΔEp = <b>${((Epa - Epc) * 1000).toFixed(0)}</b> mV（可逆極限約 59 mV）</div><div>Randles–Ševčík 可逆預測 i_p = <b>${iRS.toFixed(3)}</b> mA/cm²</div>
+        <div>Matsuda–Ayabe 參數 Λ = k⁰/√(Dfv) = <b>${fmtE(Lam)}</b>（> 15 可逆；< 10⁻³ 不可逆）</div>`;
+    });
+  } });
+
+/* ---- E3. 阻抗頻譜 (Randles 等效電路) ---- */
+TOOLS.push({ id: 'ec_eis', course: 'ec', icon: '🌀', name: 'EIS 阻抗：Nyquist 與 Randles 電路', desc: '溶液電阻 R_s 串聯「電荷轉移電阻 R_ct 並聯雙電層電容（CPE）」，可再加 Warburg 擴散阻抗。看 Nyquist 半圓怎麼讀出 R_s 與 R_ct。對應課程二第 6 關。',
+  build(d) {
+    d.insertAdjacentHTML('beforeend', `<div class="ctl">${slider('eis_rs', 'R_s (Ω)', 0.5, 20, 0.5, 2)}${slider('eis_rct', 'R_ct (Ω)', 1, 200, 1, 20)}
+      ${slider('eis_c', 'log₁₀ Q 或 C_dl (F)', -6, -2, 0.1, -4.3, 'exp')}${slider('eis_n', 'CPE 指數 n（1 = 理想電容）', 0.6, 1, 0.01, 1)}${slider('eis_w', 'Warburg 係數 σ (Ω·s⁻¹ᐟ²)', 0, 50, 1, 0)}</div>
+      <canvas id="eis_cvs"></canvas><div class="out" id="eis_o"></div>
+      <div class="analogy">🍼 判讀：高頻（左邊）交點 = R_s，用它做 iR 補償；半圓直徑 = R_ct，越小反應越快；n < 1 時半圓被「壓扁」；σ > 0 時低頻出現 45° 的擴散直線。</div>`);
+    const cv = $('#eis_cvs', d);
+    bindSliders(d, () => {
+      const Rs = sv(d, 'eis_rs'), Rct = sv(d, 'eis_rct'), Q = Math.pow(10, sv(d, 'eis_c')), n = sv(d, 'eis_n'), sg = sv(d, 'eis_w');
+      const pts = []; let fpk = 0, ypk = 0;
+      for (let i = 0; i <= 400; i++) {
+        const fq = Math.pow(10, 5 - 7 * i / 400), w = 2 * Math.PI * fq;
+        const yr = Q * Math.pow(w, n) * Math.cos(n * Math.PI / 2), yi = Q * Math.pow(w, n) * Math.sin(n * Math.PI / 2);   // CPE admittance
+        const zr = Rct + sg / Math.sqrt(w), zi = -sg / Math.sqrt(w);   // Rct + Warburg
+        const den = zr * zr + zi * zi, ar = yr + zr / den, ai = yi - zi / den;   // total admittance of parallel branch
+        const d2 = ar * ar + ai * ai, Zr = Rs + ar / d2, Zi = -ai / d2;
+        pts.push([Zr, -Zi]); if (-Zi > ypk && sg === 0) { ypk = -Zi; fpk = fq; }
+      }
+      const xm = Math.max(...pts.map(p => p[0])), lim = Math.min(xm * 1.05, Rs + Rct * 3 + 10);
+      plot(cv, { x: [0, lim], y: [0, lim * 0.55], xl: "Z′ (Ω)", yl: "−Z″ (Ω)", series: [{ pts: pts.filter(p => p[0] <= lim), c: '#2563eb' }], dots: [{ x: Rs, y: 0, label: 'R_s' }, { x: Rs + Rct, y: 0, label: 'R_s+R_ct' }] });
+      const Ceff = Math.pow(Q * Math.pow(Rct, 1 - n), 1 / n);
+      $('#eis_o', d).innerHTML = `<div>高頻截距 R_s = <b>${Rs}</b> Ω</div><div>半圓直徑 R_ct = <b>${Rct}</b> Ω</div>
+        <div>${sg === 0 ? `半圓頂點頻率 f_max ≈ <b>${fmtE(fpk)}</b> Hz` : '有 Warburg 時頂點受擴散影響'}</div><div>等效電容 C_eff = (Q·R_ct^(1−n))^(1/n) = <b>${fmtE(Ceff)}</b> F</div>`;
+    });
+  } });
+
+/* ---- E4. Pourbaix 圖與參考電極換算 ---- */
+TOOLS.push({ id: 'ec_pb', course: 'ec', icon: '🗺️', name: '水的 Pourbaix 圖與參考電極換算', desc: '輸入你量到的電位、參考電極與 pH，換算成 vs RHE / vs SHE，並標在水的穩定區圖上，看會產氫、產氧，還是水穩定。對應課程二第 1、2 關。',
+  build(d) {
+    d.insertAdjacentHTML('beforeend', `<div class="ctl">${slider('pb_ph', 'pH', 0, 14, 0.1, 14)}${slider('pb_e', '量到的電位 (V vs 參考電極)', -1.5, 1.5, 0.01, 0.6)}
+      <label>參考電極：<select id="pb_ref"><option value="0.197">Ag/AgCl（飽和 KCl，0.197 V）</option><option value="0.241">SCE（0.241 V）</option><option value="0.098">Hg/HgO（1 M KOH，0.098 V）</option><option value="0">SHE（0 V）</option><option value="rhe">RHE</option></select></label></div>
+      <canvas id="pb_c"></canvas><div class="out" id="pb_o"></div>
+      <div class="analogy">🍼 兩條斜線斜率都是 −59 mV/pH：上面那條以上會產 O₂，下面那條以下會產 H₂，中間水是穩定的。換成 vs RHE 後兩條線就變成水平的 0 V 和 1.23 V——這就是大家喜歡用 RHE 的原因。</div>`);
+    const cv = $('#pb_c', d);
+    bindSliders(d, () => {
+      const pH = sv(d, 'pb_ph'), Em = sv(d, 'pb_e'), rv = $('#pb_ref', d).value;
+      const Eshe = rv === 'rhe' ? Em - 0.0592 * pH : Em + parseFloat(rv), Erhe = Eshe + 0.0592 * pH;
+      plot(cv, { x: [0, 14], y: [-1.2, 2.0], xl: 'pH', yl: 'E vs SHE (V)', series: [{ pts: [[0, 1.229], [14, 1.229 - 0.0592 * 14]], c: '#ef4444' }, { pts: [[0, 0], [14, -0.0592 * 14]], c: '#2563eb' }], dots: [{ x: pH, y: Eshe, c: '#111827', label: '你的電位' }] });
+      const zone = Erhe > 1.229 ? `高於 O₂/H₂O 線 <b>${((Erhe - 1.229) * 1000).toFixed(0)} mV</b>（OER 過電位）→ 熱力學上可產氧` : Erhe < 0 ? `低於 H⁺/H₂ 線 <b>${(-Erhe * 1000).toFixed(0)} mV</b>（HER 過電位）→ 熱力學上可產氫` : '在水的穩定區內（不會分解水）';
+      $('#pb_o', d).innerHTML = `<div>E vs SHE = <b>${Eshe.toFixed(3)}</b> V</div><div>E vs RHE = <b>${Erhe.toFixed(3)}</b> V</div><div>${zone}</div>`;
+    });
+  } });
+
+/* ---- E5. PV-EC 工作點 ---- */
+TOOLS.push({ id: 'ec_pvec', course: 'ec', icon: '🔌', name: 'PV-EC 工作點與 STH', desc: '把 N 顆鈣鈦礦太陽電池串聯，接上電解槽（OER＋HER Tafel 動力學＋歐姆電阻）。找出兩條曲線的交點、算 STH 與耦合效率。課程一＋課程二的交會點（第 13 關）。',
+  build(d) {
+    d.insertAdjacentHTML('beforeend', `<div class="ctl">${slider('pe_n', '串聯電池數 N', 1, 4, 1, 2)}${slider('pe_jsc', '每顆 Jsc (mA/cm²)', 5, 30, 0.5, 22)}${slider('pe_voc', '每顆 Voc (V)', 0.6, 2.2, 0.01, 1.12)}
+      ${slider('pe_nd', '理想因子 n', 1, 2, 0.05, 1.3)}${slider('pe_ap', '每顆受光面積 (cm²)', 0.1, 4, 0.1, 1)}${slider('pe_ae', '電解電極面積 (cm²)', 0.1, 10, 0.1, 1)}
+      ${slider('pe_eta', 'OER η₁₀ (mV)', 200, 500, 5, 300)}${slider('pe_ba', 'OER Tafel 斜率 (mV/dec)', 30, 120, 1, 45)}${slider('pe_her', 'HER η₁₀ (mV)', 20, 300, 5, 80)}${slider('pe_r', '電解槽總電阻 R (Ω)', 0, 50, 0.5, 5)}</div>
+      <canvas id="pe_c"></canvas><div class="out" id="pe_o"></div>
+      <div class="analogy">🍼 藍線是太陽電池組能給的「電流–電壓」，橘線是電解槽要多少電壓才流得動那麼多電流。交點就是實際工作點。試試：N = 1 時交點掉到哪裡？把電極面積加大，橘線怎麼變？</div>`);
+    const cv = $('#pe_c', d);
+    bindSliders(d, () => {
+      const N = sv(d, 'pe_n'), Jsc = sv(d, 'pe_jsc'), Voc = sv(d, 'pe_voc'), nd = sv(d, 'pe_nd'), Ap = sv(d, 'pe_ap'), Ae = sv(d, 'pe_ae'), eA = sv(d, 'pe_eta') / 1000, bA = sv(d, 'pe_ba') / 1000, eC = sv(d, 'pe_her') / 1000, R = sv(d, 'pe_r');
+      const vt = nd * 0.025693, J0 = Jsc / (Math.exp(Voc / vt) - 1), bC = 0.12;
+      const Vpv = I => { const J = I / Ap; return J >= Jsc ? 0 : N * vt * Math.log((Jsc - J) / J0 + 1); };   // I mA
+      const j0A = 10 / Math.pow(10, eA / bA), j0C = 10 / Math.pow(10, eC / bC);
+      const Vel = I => { const j = I / Ae; return 1.229 + bA / 2.303 * Math.asinh(j / (2 * j0A)) + bC / 2.303 * Math.asinh(j / (2 * j0C)) + I / 1000 * R; };
+      const Imax = Jsc * Ap; let lo = 0, hi = Imax;
+      for (let i = 0; i < 80; i++) { const m = (lo + hi) / 2; if (Vpv(m) > Vel(m)) lo = m; else hi = m; }
+      const Iop = Vpv(1e-9) > Vel(1e-9) ? (lo + hi) / 2 : 0, Vop = Iop ? Vpv(Iop) : 0;
+      const A = [], B = []; let Pm = 0;
+      for (let i = 0; i <= 200; i++) { const I = Imax * i / 200; const v = Vpv(I); A.push([v, I]); if (v * I > Pm) Pm = v * I; }
+      for (let i = 0; i <= 200; i++) { const I = Imax * 1.1 * i / 200; B.push([Vel(I), I]); }
+      const Vtop = Math.max(N * Voc, 2.2) * 1.08;
+      plot(cv, { x: [0, Vtop], y: [0, Imax * 1.15], xl: '電壓 (V)', yl: '電流 I (mA)', series: [{ pts: A, c: '#2563eb' }, { pts: B.filter(p => p[0] <= Vtop), c: '#f59e0b' }], dots: Iop ? [{ x: Vop, y: Iop, label: '工作點' }] : [] });
+      const Atot = N * Ap, sth = Iop * 1.229 / (100 * Atot) * 100;
+      $('#pe_o', d).innerHTML = Iop ? `<div>工作點：I = <b>${Iop.toFixed(2)}</b> mA，V = <b>${Vop.toFixed(3)}</b> V</div><div>總受光面積 = ${Atot.toFixed(1)} cm² → J_op = <b>${(Iop / Atot).toFixed(2)}</b> mA/cm²</div>
+        <div>STH（FE 100%）= <b>${sth.toFixed(2)}</b> %</div><div>耦合效率（工作點功率 ÷ PV 最大功率）= <b>${(Iop * Vop / Pm * 100).toFixed(1)}</b> %</div><div>電極上的電流密度 = ${(Iop / Ae).toFixed(1)} mA/cm²</div>`
+        : '<div>❌ 太陽電池電壓不足以推動水分解（沒有交點）。試著增加串聯數 N 或提高 Voc。</div>';
     });
   } });
 

@@ -224,6 +224,7 @@ table.data th{background:#f8f5ec}
   <nav class="tabs" id="tabs">
     <button data-v="map" class="on">🗺️ 修練地圖</button>
     <button data-v="frontier">📡 研究前線</button>
+    <button data-v="arena">⚔️ 競技場</button>
     <button data-v="tools">🧪 模擬實驗室</button>
     <button data-v="formulas">📒 公式卡</button>
     <button data-v="glossary">🔤 名詞小辭典</button>
@@ -239,7 +240,7 @@ table.data th{background:#f8f5ec}
 <div id="modal" class="hidden"><div class="box" id="modalBox"></div></div>
 
 <script src="config.js"></script>
-<script src="content.enc.js?v=4f85096b0d"></script>
+<script src="content.enc.js?v=f2377718d4"></script>
 <script>
 /* 設定在 config.js（老師可直接在 GitHub 網頁上編輯）；加密內容在 content.enc.js */
 const CONFIG = Object.assign({ API: '', ROSTER: false, FREE_ROAM: false, BOSS_REQ: 0.6 }, window.PVQ_CONFIG || {});
@@ -285,17 +286,21 @@ const COURSES = {
   pv: { no: '課程一', name: '半導體元件與太陽電池', icon: '☀️',
     src: '主要教材：J. Nelson《The Physics of Solar Cells》（中譯本），並整合 P. Würfel《Physics of Solar Cells》與 S. Fonash《Solar Cell Device Physics》。',
     parts: { basic: { icon: '🟦', name: '基本知識：半導體元件基礎', desc: '能帶、載子、產生與複合、接面、p-n 結二極體——所有半導體元件共通的地基。' },
-             adv: { icon: '🟧', name: '進階知識：太陽電池', desc: '把半導體基礎用在太陽電池：特性與效率極限、各種電池技術、光學管理與新概念。' } },
+             adv: { icon: '🟧', name: '進階知識：太陽電池', desc: '把半導體基礎用在太陽電池：特性與效率極限、各種電池技術與光學管理。' },
+             app: { icon: '🟩', name: '研究專題：鈣鈦礦與新世代電池', desc: '和實驗室研究直接相關的專題。各專題之間互不鎖定，並連結「研究前線」的最新文獻持續延伸。' } },
     order: [[0, 'basic'], [3, 'basic'], [4, 'basic'], [5, 'basic'], [6, 'basic'],
-      [1, 'adv'], [2, 'adv'], [7, 'adv'], [8, 'adv'], [9, 'adv'], [10, 'adv'], [11, 'adv'], [12, 'adv'], [13, 'adv']],
+      [1, 'adv'], [2, 'adv'], [7, 'adv'], [8, 'adv'], [9, 'adv'], [10, 'adv'], [11, 'adv'], [13, 'app'], [12, 'app']],
+    topics: { 13: ['PSC', 'PSCSTAB'], 12: ['TANDEM'] },
     orig: c => (c.id === 0 || c.bonus) ? '' : 'Nelson 原書第 ' + c.id + ' 章',
     secs: { math: '數理基礎', semi: '半導體元件', pv: '太陽電池' } },
-  ec: { no: '課程二', name: '電化學與電催化：從基礎到產氫、產氧、產氨', icon: '⚗️',
+  ec: { no: '課程二', name: '電化學', icon: '⚗️',
     src: '主要教材：A. J. Bard & L. R. Faulkner《Electrochemical Methods》(2nd ed.)、T. ul Haq & Y. Haik《Electrochemical Water Splitting》(2024)，並整合燃料電池電催化、電化學合成氨回顧與水電解產業化回顧論文。',
     parts: { basic: { icon: '🟦', name: '基本知識：電化學基礎', desc: '電化學池、熱力學、電極動力學、質傳、電雙層與量測技術——讀懂任何電化學論文的地基。' },
-             adv: { icon: '🟧', name: '進階知識：電催化與能源轉換', desc: '電催化原理、產氫 HER、產氧 OER、如何正確評比觸媒、產業電解槽、電化學合成氨，以及太陽電池驅動的光電串接。' } },
+             adv: { icon: '🟧', name: '進階知識：電催化原理與評比', desc: '吸附、火山圖與 d 能帶，以及如何正確量測、評比觸媒——讀懂並寫出經得起審稿的數據。' },
+             app: { icon: '🟩', name: '研究專題：產氫、產氧、產氨與太陽能驅動', desc: '依實驗室研究主題分區，各專題之間互不鎖定，並連結「研究前線」的最新文獻持續延伸。' } },
     order: [[100, 'basic'], [101, 'basic'], [102, 'basic'], [103, 'basic'], [104, 'basic'], [105, 'basic'], [106, 'basic'],
-      [107, 'adv'], [108, 'adv'], [109, 'adv'], [110, 'adv'], [111, 'adv'], [112, 'adv'], [113, 'adv']],
+      [107, 'adv'], [110, 'adv'], [108, 'app'], [109, 'app'], [111, 'app'], [112, 'app'], [113, 'app']],
+    topics: { 108: ['HER'], 109: ['OER'], 111: ['OWS'], 112: ['NH3'], 113: ['SOLAR', 'CO2'] },
     orig: c => c.ref || '',
     secs: { chem: '化學與數理', ec: '電化學基礎', cat: '電催化與應用' } }
 };
@@ -308,13 +313,16 @@ function arrange() {
   });
   CH.sort((a, b) => a.ord - b.ord);
   CKEYS.forEach(ck => {
-    let nb = 0, na = 0;
+    let nb = 0, na = 0, np = 0;
     CH.filter(c => c.course === ck).forEach((c, i) => {
       if (i === 0) c.label = '新手村';
+      else if (c.part === 'app') c.label = '專題 ' + (++np);
       else if (c.bonus) c.label = '進階・番外篇';
       else if (c.part === 'basic') c.label = '基礎 第 ' + (++nb) + ' 關';
+      else if (c.part === 'app') c.label = '專題 ' + (++np);
       else c.label = '進階 第 ' + (++na) + ' 關';
       c.orig = COURSES[ck].orig(c);
+      c.topics = (COURSES[ck].topics || {})[c.id] || [];
     });
   });
 }
@@ -329,7 +337,7 @@ const Rec = {
   init() { this.q = LS.get(KEYP + 'outbox', []); setInterval(() => this.flush(), 15000); },
   send(type, data) {
     if (!CONFIG.API) return;
-    this.q.push(Object.assign({ type, sid: S.sid, name: S.name, nick: S.nick, ts: new Date().toISOString(), app: 'PVQuest' }, data));
+    this.q.push(Object.assign({ type, sid: S.sid, name: S.name, nick: S.nick, xp: S.xp, level: levelOf(S.xp).lv, ts: new Date().toISOString(), app: 'PVQuest' }, data));
     LS.set(KEYP + 'outbox', this.q.slice(-300));
     clearTimeout(this._t); this._t = setTimeout(() => this.flush(), 1500);
   },
@@ -427,6 +435,12 @@ const BADGES = [
   { id: 'hunter', e: '🔎', n: '文獻獵人', d: '投稿的研究前線卡通過老師審核', f: () => FRONT.cards.some(c => c.mine) },
   { id: 'jc3', e: '📅', n: 'Journal Club 常客', d: '完成 3 次 Journal Club 會前任務', f: () => Object.keys(S.jc || {}).length >= 3 },
   { id: 'critic', e: '💬', n: '勇於提問', d: '在研究前線留言 5 次', f: () => (S.cmt || 0) >= 5 },
+  { id: 'track1', e: '🎖️', n: '專題通關', d: '走完任一條研究前線專題路線（至少 3 張卡）', f: () => Object.keys(S.tracks || {}).length >= 1 },
+  { id: 'daily1', e: '📅', n: '每日一練', d: '完成第一次每日挑戰', f: () => Object.keys(S.daily || {}).length >= 1 },
+  { id: 'daily7', e: '🗓️', n: '七日連勝', d: '每日挑戰連續 7 天', f: () => dailyStreak() >= 7 },
+  { id: 'perfect', e: '💯', n: '滿分手速', d: '每日挑戰 5 題全對', f: () => Object.values(S.daily || {}).some(x => x.correct === 5) },
+  { id: 'duel1', e: '🤺', n: '初次對決', d: '完成第一場對戰', f: () => Object.keys(S.duelSeen || {}).length >= 1 },
+  { id: 'win5', e: '🏆', n: '擂台霸主', d: '對戰贏 5 場', f: () => (S.duelWins || 0) >= 5 },
   { id: 'cards6', e: '🃏', n: '科學家收藏家', d: '收集 6 張科學家卡', f: () => (S.cards || []).length >= 6 },
   { id: 'cardsall', e: '🏛️', n: '名人堂', d: '收集全部科學家卡', f: () => CARDS.length && (S.cards || []).length >= CARDS.length },
 ];
@@ -452,7 +466,9 @@ function unlocked(c) {
   const P = getPlace(c.course), tier = P ? P.tier : 0;
   if (tier >= 2) return true;                          // 鑑定為進階：全部開放
   if (tier >= 1 && c.part === 'basic') return true;    // 鑑定為基礎：基本知識區全開
-  return !!(chapterDone(L[i - 1]) || (S.skip && S.skip[c.id]));
+  if (S.skip && S.skip[c.id]) return true;
+  if (c.part === 'app') { const f = L.findIndex(x => x.part === 'app'); return f <= 0 || chapterDone(L[f - 1]); }   // 專題彼此不鎖定
+  return !!chapterDone(L[i - 1]);
 }
 function chStats(c) {
   const n = c.concepts.length, d = c.concepts.filter(k => S.concept[k.id]).length;
@@ -467,7 +483,7 @@ function go(v, arg) {
   curView = v;
   $$('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.v === v || (v === 'chapter' && b.dataset.v === 'map')));
   const V = $('#view'); V.innerHTML = '';
-  ({ placement: viewPlacement, frontier: viewFrontier, map: viewMap, chapter: viewChapter, tools: viewTools, formulas: viewFormulas, glossary: viewGlossary, wrong: viewWrong, hall: viewHall, me: viewMe })[v](V, arg);
+  ({ placement: viewPlacement, frontier: viewFrontier, arena: viewArena, map: viewMap, chapter: viewChapter, tools: viewTools, formulas: viewFormulas, glossary: viewGlossary, wrong: viewWrong, hall: viewHall, me: viewMe })[v](V, arg);
   typeset(V);
   window.scrollTo(0, 0);
   if (v === 'chapter') { curCh = arg; enterT = Date.now(); history.replaceState(null, '', '#ch=' + arg); }
@@ -499,13 +515,13 @@ function viewMap(V) {
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 4px">${CKEYS.filter(k => courseCH(k).length).map(k => `<button class="btn ${k === ck ? '' : 'ghost'}" style="${k === ck ? '' : 'color:#e2e8f0;border-color:#475569'}" onclick="S.course='${k}';save(false);go('map')">${COURSES[k].icon} ${COURSES[k].no}：${COURSES[k].name}</button>`).join('')}</div>
     <div class="card" style="margin-top:10px;background:linear-gradient(135deg,#fff7e6,#fffdf8)"><div class="muted" style="font-size:13px;font-weight:700">📚 ${C.no}${T ? '　・　🎓 你的入門鑑定：' + T.e + ' ' + T.n : ''}</div>
       <h3 style="margin:2px 0">${C.icon} ${C.name}</h3>
-      <div class="muted" style="font-size:14px">${C.src}分為「基本知識」與「進階知識」兩區。每關：讀觀念 → 過節點小測驗 → 練計算題 → 挑戰魔王，擊敗魔王才會開啟下一關${CONFIG.FREE_ROAM ? '（老師已開放自由探索）' : ''}。</div></div>
+      <div class="muted" style="font-size:14px">${C.src}分為「基本知識」「進階知識」與「研究專題」三區。每關：讀觀念 → 過節點小測驗 → 練計算題 → 挑戰魔王，擊敗魔王才會開啟下一關${CONFIG.FREE_ROAM ? '（老師已開放自由探索）' : ''}。</div></div>
     <div id="zones"></div>
     <div class="card" style="opacity:.85"><div class="muted" style="font-size:13px;font-weight:700">📡 研究前線</div>
       <div style="font-size:15px">課程之外，到上方「研究前線」分頁看最新文獻怎麼用到這些基礎觀念，並參加 Journal Club 會前閱讀任務。</div></div>
     <div style="text-align:center;color:#64748b;font-size:12px;margin:18px 0">FOEM 修練場 · 明志科大材料系 黃裕清老師實驗室 · 實驗室內部教學資源，請勿外流</div>`;
   const Z = $('#zones', V);
-  ['basic', 'adv'].forEach(pk => {
+  ['basic', 'adv', 'app'].forEach(pk => {
     const PP = C.parts[pk], list = courseCH(ck).filter(c => c.part === pk);
     if (!list.length) return;
     const doneN = list.filter(c => c.boss && chapterDone(c)).length, bossN = list.filter(c => c.boss).length;
@@ -521,6 +537,7 @@ function viewMap(V) {
         <div class="no">${c.label} ${ok ? '' : '🔒'}</div>
         <h3>${esc(c.title)}</h3><div class="muted" style="font-size:13px">${esc(c.en || '')}${c.orig ? '<br>📘 ' + c.orig : ''}</div>
         <div style="font-size:13px;margin-top:6px">觀念 ${st.d}/${st.n}・計算 ${st.pd}/${st.pn}${c.boss ? '・魔王 ' + (done ? '✅' : '⬜') : ''}</div>
+        ${c.topics.length ? `<div style="font-size:13px;margin-top:4px">📡 相關文獻卡 <b>${FRONT.cards.filter(x => x.topics.some(t => c.topics.includes(t))).length}</b> 張</div>` : ''}
         <div class="prog"><i style="width:${Math.round(st.frac * 100)}%"></i></div>`;
       d.onclick = () => {
         if (ok) return go('chapter', c.id);
@@ -545,6 +562,8 @@ function viewChapter(V, id) {
     ${c.goals ? `<div style="font-weight:700;margin-top:8px">🎯 本章學完你應該能夠：</div><ul class="goals">${c.goals.map(g => `<li>${g}</li>`).join('')}</ul>` : ''}
     <div class="src" style="margin-top:8px">📚 對應教材：${c.src || ''}${c.orig ? '<br>📘 本關＝' + c.orig + (c.course === 'pv' ? '（文中提到「第 X 章」時，指的是 Nelson 原書章節）' : '') : ''}</div>
     <div class="path" id="path"></div></div>
+  ${c.topics && c.topics.length ? `<div class="card" style="border:2px solid #10b981"><b>📡 本專題的研究前線</b>：${c.topics.map(t => `<button class="btn small ghost" style="margin:2px" onclick="go('frontier','T:${t}')">${TOPICS[t] || t}（${FRONT.cards.filter(x => x.topics.includes(t)).length} 張卡）</button>`).join('')}
+    <div class="muted" style="font-size:13px;margin-top:4px">讀完本關的基礎，再到研究前線走完「專題路線」：每張文獻卡都標出用到這一關的哪些觀念。</div></div>` : ''}
   <div id="concepts"></div><div id="probs"></div><div id="bossArea"></div>`;
   const P = $('#path', V);
   c.concepts.forEach((k, i) => {
@@ -964,7 +983,13 @@ function viewPlacement(V, ck) {
 
 /* ---------------- 📡 研究前線（文獻卡 + Journal Club） ---------------- */
 const FRONT = { cards: [], jc: [], comments: [], loaded: false, err: '' };
-const TOPICS = { SOLAR: '☀️ 太陽能驅動', HER: '💧 產氫 HER', OER: '🫧 產氧 OER', OWS: '⚡ 全水分解', NH3: '🌱 產氨', CO2: '🍃 CO₂ 捕捉／還原', METHOD: '📏 方法與規範' };
+const TOPICS = { PSC: '🧱 鈣鈦礦電池：效率與界面', PSCSTAB: '🛡️ 鈣鈦礦穩定性', TANDEM: '🥞 疊層電池', SOLAR: '☀️ 太陽能驅動化學', HER: '💧 產氫 HER', OER: '🫧 產氧 OER', OWS: '⚡ 全水分解', NH3: '🌱 產氨', CO2: '🍃 CO₂ 捕捉／還原', METHOD: '📏 方法與規範' };
+const TOPIC_GROUPS = [['☀️ 太陽電池', ['PSC', 'PSCSTAB', 'TANDEM']], ['⚗️ 電化學與太陽燃料', ['SOLAR', 'HER', 'OER', 'OWS', 'NH3', 'CO2']], ['📏 共通', ['METHOD']]];
+const cardDone = cd => { const ex = parseJSON(cd.ex, []); return ex.length ? ex.every((q, j) => S.quiz['F:' + cd.id + '#' + j] && S.quiz['F:' + cd.id + '#' + j].ok) : !!(S.fopen || {})[cd.id]; };
+function checkTrack(t) {
+  const L = FRONT.cards.filter(c => c.topics.includes(t)); S.tracks = S.tracks || {};
+  if (L.length >= 3 && !S.tracks[t] && L.every(cardDone)) { S.tracks[t] = Date.now(); save(); addXP(30, '專題路線通關：' + (TOPICS[t] || t)); Rec.send('track', { item: t }); toast('🎖️ 專題路線通關！'); }
+}
 const FTAGS = { '共識': '✅ 已有共識', '新提出': '🔬 新提出', '爭議': '⚠️ 有爭議' };
 async function sha256hex(t) { const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join(''); }
 async function frontierKey() { const t = LS.get(KEYP + 'ticket', ''); return sha256hex('FOEM-frontier|' + String(t).normalize('NFKC').trim()); }
@@ -1016,19 +1041,22 @@ function renderFrontCard(cd, open) {
     <div class="sec"><div class="h">💬 討論（${cm.length}）</div><div class="cml">${cm.map(x => `<div class="prebox" style="background:#f8fafc"><b>${esc(x.nick || '匿名')}</b> <span class="muted" style="font-size:12px">${esc(String(x.ts || '').slice(0, 10))}</span><br>${esc(x.text)}</div>`).join('') || '<div class="muted" style="font-size:14px">還沒有人留言，當第一個提問的人吧！</div>'}</div>
       <textarea placeholder="我的疑問或看法（會以暱稱顯示）" style="width:100%;min-height:50px;border:1px solid var(--line);border-radius:8px;padding:6px;margin-top:6px"></textarea><button class="btn small">送出留言</button></div>`;
   const fx = $('.fx', d);
-  if (fx) ex.forEach((q, j) => fx.appendChild(renderQ(q, 'F:' + cd.id + '#' + j, { ch: 'F' })));
+  if (fx) ex.forEach((q, j) => fx.appendChild(renderQ(q, 'F:' + cd.id + '#' + j, { ch: 'F', onDone: () => cd.topics.forEach(checkTrack) })));
   $('.sec:last-child .btn', d).onclick = () => {
     const ta = $('.sec:last-child textarea', d), t = ta.value.trim(); if (!t) return;
     Rec.send('comment', { item: cd.id, comment: t }); FRONT.comments.push({ target: cd.id, nick: S.nick, text: t, ts: new Date().toISOString() });
     ta.value = ''; const first = !(S.cmt || 0); S.cmt = (S.cmt || 0) + 1; save(); toast('留言已送出'); if (first) addXP(5, '第一次參與討論');
     $('.cml', d).insertAdjacentHTML('beforeend', `<div class="prebox" style="background:#f8fafc"><b>${esc(S.nick)}</b><br>${esc(t)}</div>`);
   };
-  d.addEventListener('toggle', () => { if (d.open) { typeset(d); Rec.send('card_open', { item: cd.id }); } }, { once: true });
+  d.addEventListener('toggle', () => { if (d.open) { typeset(d); Rec.send('card_open', { item: cd.id }); S.fopen = S.fopen || {}; if (!S.fopen[cd.id]) { S.fopen[cd.id] = 1; save(); cd.topics.forEach(checkTrack); } } }, { once: true });
   return d;
 }
 function viewFrontier(V, openId) {
+  let topic = 'all';
+  if (openId && String(openId).startsWith('T:')) { topic = String(openId).slice(2); openId = null; }
   V.innerHTML = `<div class="card"><h2 style="margin:0">📡 研究前線</h2>
     <div class="muted">課本是主幹，論文是不斷長出的枝葉。每張卡片都標出它用到哪些基礎觀念，點一下就能回到課程複習。</div>
+    <div style="font-size:14px;margin-top:6px">🌱 成長模式：<b>新文獻 → 研究前線卡 → 專題路線</b>（同主題的卡片依時間串起來）<b>→ 卡片累積夠多、知識穩定後，整理成正式課程章節</b>。選一個主題，就能看到該專題路線的進度。</div>
     ${FRONT.loaded ? '' : `<p class="muted">${FRONT.err || '讀取中…'}</p>`}</div>
     <div id="jcA"></div>
     <div class="card"><h3 style="margin:0 0 6px">📚 研究前線卡庫</h3><div id="fchips"></div>
@@ -1054,14 +1082,21 @@ function viewFrontier(V, openId) {
     $('#jcA', V).appendChild(box);
   }
   // ---- 卡庫 ----
-  let topic = 'all';
-  const chips = () => { $('#fchips', V).innerHTML = [['all', '全部']].concat(Object.entries(TOPICS)).map(([k, n]) => `<button class="btn small ${k === topic ? '' : 'ghost'}" data-k="${k}" style="margin:2px">${n}</button>`).join('');
+  const cnt = t => FRONT.cards.filter(c => c.topics.includes(t)).length;
+  const chips = () => { $('#fchips', V).innerHTML = `<button class="btn small ${topic === 'all' ? '' : 'ghost'}" data-k="all" style="margin:2px">全部（${FRONT.cards.length}）</button>` +
+      TOPIC_GROUPS.map(([g, ks]) => `<div style="margin-top:6px"><span class="muted" style="font-size:13px;font-weight:700">${g}</span><br>${ks.map(k => `<button class="btn small ${k === topic ? '' : 'ghost'}" data-k="${k}" style="margin:2px">${TOPICS[k]}（${cnt(k)}）${(S.tracks || {})[k] ? ' 🎖️' : ''}</button>`).join('')}</div>`).join('');
     $$('#fchips button', V).forEach(b => b.onclick = () => { topic = b.dataset.k; chips(); list(); }); };
   const list = () => {
     const kw = ($('#fs', V).value || '').toLowerCase(), L = $('#flist', V); L.innerHTML = '';
+    if (topic !== 'all') {
+      const T = FRONT.cards.filter(c => c.topics.includes(topic)), dn = T.filter(cardDone).length, home = CH.filter(c => (c.topics || []).includes(topic));
+      L.insertAdjacentHTML('beforeend', `<div class="card" style="border:2px solid #10b981"><b>🛤️ 專題路線：${TOPICS[topic] || topic}</b>　完成 ${dn}/${T.length} 張卡${(S.tracks || {})[topic] ? '　🎖️ 已通關' : (T.length >= 3 ? '　（全部完成可得 +30 XP 與通關勳章）' : '')}
+        <div class="prog" style="margin:6px 0"><i style="width:${T.length ? Math.round(dn / T.length * 100) : 0}%"></i></div>
+        <div class="muted" style="font-size:13px">一張卡「完成」＝判讀練習全部答對（沒有練習題的卡，打開讀過即可）。${home.length ? '對應課程：' + home.map(c => `<a href="javascript:void(0)" onclick="go('chapter',${c.id})">${COURSES[c.course].no} ${esc(c.label)}｜${esc(c.title)}</a>`).join('、') : ''}${T.length >= 15 ? '<br>📚 這個專題的卡片已經很多了，老師可以考慮把它整理成正式課程章節。' : ''}</div></div>`);
+    }
     const arr = FRONT.cards.filter(c => (topic === 'all' || c.topics.includes(topic)) && (!kw || JSON.stringify(c).toLowerCase().includes(kw)))
       .sort((a, b) => String(b.date).localeCompare(String(a.date)));
-    if (FRONT.loaded && !arr.length) L.innerHTML = '<div class="card muted">沒有符合的卡片。</div>';
+    if (FRONT.loaded && !arr.length) L.insertAdjacentHTML('beforeend', '<div class="card muted">沒有符合的卡片。</div>');
     arr.forEach(c => L.appendChild(renderFrontCard(c, c.id === openId)));
     typeset(L);
     if (openId) setTimeout(() => { const e = $('#fc_' + cssId(openId)); if (e) e.scrollIntoView({ behavior: 'smooth' }); }, 150);
@@ -1086,6 +1121,124 @@ function viewFrontier(V, openId) {
     S.submits = (S.submits || 0) + 1; save(); addXP(20, '投稿研究前線卡'); toast('投稿已送出，等待老師審核！');
   };
 }
+
+/* ---------------- ⚔️ 競技場：每日挑戰、對戰、週聯賽 ---------------- */
+function hashStr(t) { let h = 2166136261; for (const ch of String(t)) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
+function rng32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const ARENA_SCOPES = { pv: '☀️ 課程一', ec: '⚗️ 課程二', all: '🌐 全部課程', basic: '🟦 只考基本知識' };
+function arenaPool(scope) {
+  const out = [];
+  CH.forEach(c => { if (scope === 'pv' || scope === 'ec') { if (c.course !== scope) return; } else if (scope === 'basic' && c.part !== 'basic') return;
+    c.concepts.forEach(k => (k.quiz || []).forEach((q, j) => out.push(k.id + '#' + j))); });
+  return out.sort();
+}
+function arenaQ(key) { const [kid, j] = key.split('#'); const f = findConcept(kid); return f ? { q: f.k.quiz[+j], c: f.c, k: f.k } : null; }
+function arenaPick(scope, seed, n = 5) { const P = arenaPool(scope), r = rng32(hashStr(seed)), out = []; const used = new Set();
+  while (out.length < Math.min(n, P.length)) { const i = Math.floor(r() * P.length); if (!used.has(i)) { used.add(i); out.push(P[i]); } } return out; }
+const ARENA = { data: null };
+async function loadArena() { ARENA.data = await apiGet({ action: 'arena', sid: S.sid, d: nowDay() }); return ARENA.data; }
+// 出題、計時、計分（每題 30 秒；答對 100 分＋速度加分最多 50）
+function playArena(title, keys, onEnd) {
+  let i = 0, score = 0, correct = 0, secs = 0, timer = null, t0 = 0; const log = []; ARENA.playing = true;
+  const box = document.createElement('div');
+  const next = () => {
+    clearInterval(timer);
+    if (i >= keys.length) { ARENA.playing = false; closeModal(); return onEnd({ score, correct, secs: Math.round(secs), log }); }
+    const A = arenaQ(keys[i]); if (!A) { i++; return next(); }
+    const q = A.q; t0 = Date.now(); let left = 30, answered = false;
+    modal(`<div style="text-align:left"><div style="display:flex;justify-content:space-between"><b>${title}</b><span>第 ${i + 1}/${keys.length} 題・<span id="atm">30</span> 秒・${score} 分</span></div>
+      <div class="muted" style="font-size:12px">出自 ${esc(A.c.label)}｜${esc(A.k.id)} ${esc(A.k.title)}</div><div class="q"><div class="qt">${q.q}</div><div class="body" id="abody"></div><div class="fbx" id="afb"></div></div></div>`);
+    const body = $('#abody'), fb = $('#afb');
+    const done = ok => {
+      if (answered) return; answered = true; clearInterval(timer);
+      const dt = (Date.now() - t0) / 1000; secs += dt;
+      if (ok) { correct++; score += 100 + Math.max(0, Math.round(50 - 2 * dt)); } else { S.wrong[keys[i]] = { ch: A.c.id, t: Date.now() }; S.wrongEver = S.wrongEver || {}; S.wrongEver[keys[i]] = 1; }
+      log.push(ok ? 1 : 0);
+      fb.innerHTML = `<div class="fb ${ok ? 'ok' : 'no'}">${ok ? '⭕ 答對！' : '❌ ' + (q.type === 'num' ? '正確答案：' + q.ans + ' ' + (q.unit || '') : '正確答案：' + q.opts[q.a])} ${q.why ? '<br>' + q.why : ''}</div><button class="btn" id="anext">${i + 1 < keys.length ? '下一題 →' : '看結果'}</button>`;
+      typeset(fb); $('#anext').onclick = () => { i++; next(); };
+    };
+    if (q.type === 'num') {
+      body.innerHTML = `<div class="numin"><input id="ain" placeholder="輸入數值"> <span>${q.unit || ''}</span><button class="btn small" id="ago">送出</button></div>`;
+      $('#ago').onclick = () => { const r = checkNum($('#ain').value, q); if (r == null) return toast('請輸入數字'); done(r); };
+      $('#ain').addEventListener('keydown', e => { if (e.key === 'Enter') $('#ago').click(); }); $('#ain').focus();
+    } else shuffle(q.opts.map((o, j) => j)).forEach(j => { const b = document.createElement('button'); b.className = 'opt'; b.innerHTML = q.opts[j];
+      b.onclick = () => { b.classList.add(j === q.a ? 'right' : 'wrong'); done(j === q.a); }; body.appendChild(b); });
+    timer = setInterval(() => { left--; const e = $('#atm'); if (e) e.textContent = left; if (left <= 0) { clearInterval(timer); done(false); } }, 1000);
+  };
+  next();
+}
+function duelOutcome(d) { if (d.status !== '完成') return null; if (d.winner === '平手') return 'draw'; return d.winner === S.sid ? 'win' : 'lose'; }
+function awardDuels() {
+  if (!ARENA.data || !ARENA.data.duels) return; S.duelSeen = S.duelSeen || {};
+  ARENA.data.duels.forEach(d => { const o = duelOutcome(d); if (!o || S.duelSeen[d.id]) return; if (d.c_sid !== S.sid && d.o_sid !== S.sid) return;
+    S.duelSeen[d.id] = o; if (o === 'win') S.duelWins = (S.duelWins || 0) + 1;
+    addXP(o === 'win' ? 30 : o === 'draw' ? 15 : 10, o === 'win' ? '對戰勝利' : o === 'draw' ? '對戰平手' : '對戰參與'); });
+  save(); checkBadges();
+}
+async function viewArena(V) {
+  const today = nowDay(), dd = (S.daily || {})[today];
+  V.innerHTML = `<div class="card"><h2 style="margin:0">⚔️ 競技場</h2><div class="muted">和實驗室夥伴一起練：每日挑戰比手速、找人單挑、週聯賽拚累積。題目都來自課程的觀念小測驗，答錯的題目會自動進錯題本。</div></div>
+    <div class="card" style="border:2px solid var(--sun)"><h3 style="margin:0">📅 每日挑戰　<span class="muted" style="font-size:14px">${today}・全實驗室同一套 5 題・每天一次</span></h3>
+      <div style="margin:6px 0">${dd ? `✅ 今天已完成：<b>${dd.score}</b> 分（答對 ${dd.correct}/5）` : '還沒挑戰！每題 30 秒，答對 100 分＋速度加分。'}　🔥 連續 ${dailyStreak()} 天</div>
+      ${dd ? '' : '<button class="btn" id="dgo">開始今日挑戰</button>'}<div id="dlb" class="muted" style="margin-top:8px">今日排行讀取中…</div></div>
+    <div class="card"><h3 style="margin:0">🤺 單挑對戰</h3>
+      <div class="muted" style="font-size:14px">挑一位夥伴（或發公開挑戰），系統出同一套 5 題。你先答，對手之後答；分數高者勝（勝 +30、平 +15、敗 +10 XP）。每天最多發起 5 場。</div>
+      <div style="margin:8px 0;display:flex;gap:6px;flex-wrap:wrap;align-items:center"><select id="dop" style="padding:6px;border-radius:8px"><option value="*">🌐 公開挑戰（任何人都可應戰）</option></select>
+        <select id="dsc" style="padding:6px;border-radius:8px">${Object.entries(ARENA_SCOPES).map(([k, n]) => `<option value="${k}">${n}</option>`).join('')}</select>
+        <button class="btn" id="dnew">發起挑戰</button></div>
+      <div id="dlist" class="muted">對戰紀錄讀取中…</div></div>
+    <div class="card"><h3 style="margin:0">🏟️ 本週聯賽</h3><div class="muted" style="font-size:14px">本週（週一起算）累積獲得的 XP 排名，每週一重新開始。</div><div id="wlb" class="muted">讀取中…</div></div>
+    <div class="card"><h3 style="margin:0">🥊 對戰戰績榜</h3><div id="rlb" class="muted">讀取中…</div></div>`;
+  if (!CONFIG.API) { ['dlb', 'dlist', 'wlb', 'rlb'].forEach(i => $('#' + i, V).textContent = '老師尚未設定紀錄伺服器，競技場的連線功能暫不開放（每日挑戰仍可自己練習）。'); }
+  const dg = $('#dgo', V);
+  if (dg) dg.onclick = () => playArena('📅 每日挑戰 ' + today, arenaPick('all', 'daily|' + today), r => {
+    S.daily = S.daily || {}; S.daily[today] = r; save();
+    Rec.send('daily', { item: 'daily:' + today, score: r.score, correct: r.correct, secs: r.secs }); Rec.flush();
+    addXP(5 + r.correct * 4, '每日挑戰'); checkBadges(); go('arena');
+  });
+  $('#dnew', V).onclick = () => {
+    if (!CONFIG.API) return toast('需要紀錄伺服器才能對戰');
+    S.duelMade = S.duelMade || {}; const n = S.duelMade[today] || 0; if (n >= 5) return toast('今天已發起 5 場，明天再來！');
+    const opp = $('#dop', V).value, oppNick = $('#dop', V).selectedOptions[0].dataset.nick || '公開挑戰', sc = $('#dsc', V).value;
+    const id = 'D' + Date.now().toString(36) + S.sid.slice(-3), keys = arenaPick(sc, id);
+    playArena('🤺 對戰：vs ' + oppNick, keys, r => {
+      S.duelMade[today] = n + 1; save();
+      Rec.send('duel_new', { item: id, score: r.score, correct: r.correct, secs: r.secs, comment: JSON.stringify({ opp, oppNick, scope: sc, keys, score: r.score, correct: r.correct, secs: r.secs }) }); Rec.flush();
+      modal(`<div class="cardart">🤺</div><h3>挑戰已送出！</h3><p>你的成績：<b>${r.score}</b> 分（答對 ${r.correct}/5）。等 ${esc(oppNick)} 應戰後，回到競技場就會看到結果。</p><button class="btn" onclick="closeModal();go('arena')">好</button>`);
+    });
+  };
+  if (!CONFIG.API) return;
+  const [A, B] = await Promise.all([loadArena(), apiGet({ action: 'board' })]);
+  if (curView !== 'arena') return;
+  if (B && B.rows) B.rows.filter(x => x.sid !== S.sid && x.nick).forEach(x => $('#dop', V).insertAdjacentHTML('beforeend', `<option value="${esc(x.sid)}" data-nick="${esc(x.nick)}">⚔️ ${esc(x.nick)}（Lv${x.level}）</option>`));
+  if (!A || A.error) { ['dlb', 'dlist', 'wlb', 'rlb'].forEach(i => $('#' + i, V).textContent = '暫時讀不到競技場資料（網路不穩？）'); return; }
+  awardDuels();
+  const medal = i => i < 3 ? ['🥇', '🥈', '🥉'][i] : i + 1;
+  $('#dlb', V).innerHTML = (A.daily || []).length ? `<table class="board"><tr><th>#</th><th>修練者</th><th>分數</th><th>答對</th><th>秒</th></tr>${A.daily.map((x, i) => `<tr class="${x.me ? 'me' : ''}"><td>${medal(i)}</td><td>${esc(x.nick)}</td><td>${x.score}</td><td>${x.correct}/5</td><td>${x.secs}</td></tr>`).join('')}</table>` : '今天還沒有人挑戰，搶頭香！';
+  const D = A.duels || [];
+  const row = d => {
+    const mine = d.c_sid === S.sid, opp = mine ? (d.o_nick || '公開挑戰') : d.c_nick, o = duelOutcome(d);
+    const canPlay = d.status === '待應戰' && !mine && (d.o_sid === S.sid || d.o_sid === '*');
+    return `<div class="prebox" style="background:#f8fafc;display:flex;justify-content:space-between;gap:8px;align-items:center"><div>${mine ? '你 vs ' : ''}<b>${esc(opp)}</b>${mine ? '' : ' 向你挑戰'}　<span class="muted" style="font-size:13px">${ARENA_SCOPES[d.scope] || ''}・${esc(String(d.ts).slice(0, 10))}</span><br>
+      ${d.status === '完成' ? `${esc(d.c_nick)} ${d.c_score} : ${d.o_score} ${esc(d.o_nick)}　${o === 'win' ? '🏆 你贏了' : o === 'lose' ? '😤 再接再厲' : o === 'draw' ? '🤝 平手' : ''}` : mine ? `你 ${d.c_score} 分・等待對手應戰` : `對手 ${d.c_score} 分・輪到你了！`}</div>
+      ${canPlay ? `<button class="btn small" data-id="${esc(d.id)}">應戰</button>` : ''}</div>`;
+  };
+  $('#dlist', V).innerHTML = D.length ? D.map(row).join('') : '還沒有對戰紀錄。發起第一場挑戰吧！';
+  $$('#dlist button[data-id]', V).forEach(b => b.onclick = () => {
+    const d = D.find(x => x.id === b.dataset.id), keys = parseJSON(d.keys, []);
+    playArena('🤺 應戰：vs ' + d.c_nick, keys, r => {
+      Rec.send('duel_play', { item: d.id, score: r.score, correct: r.correct, secs: r.secs, comment: JSON.stringify(r) }); Rec.flush();
+      const o = r.score > d.c_score ? 'win' : r.score < d.c_score ? 'lose' : 'draw';
+      S.duelSeen = S.duelSeen || {}; S.duelSeen[d.id] = o; if (o === 'win') S.duelWins = (S.duelWins || 0) + 1; save();
+      addXP(o === 'win' ? 30 : o === 'draw' ? 15 : 10, o === 'win' ? '對戰勝利' : o === 'draw' ? '對戰平手' : '對戰參與'); checkBadges();
+      modal(`<div class="cardart">${o === 'win' ? '🏆' : o === 'draw' ? '🤝' : '💪'}</div><h3>${o === 'win' ? '勝利！' : o === 'draw' ? '平手！' : '惜敗！'}</h3><p>${esc(d.c_nick)} ${d.c_score} : ${r.score} 你</p><button class="btn" onclick="closeModal();go('arena')">回競技場</button>`);
+    });
+  });
+  $('#wlb', V).innerHTML = (A.week || []).length ? `<table class="board"><tr><th>#</th><th>修練者</th><th>本週 XP</th></tr>${A.week.map((x, i) => `<tr class="${x.me ? 'me' : ''}"><td>${medal(i)}</td><td>${esc(x.nick)}</td><td>+${x.gain}</td></tr>`).join('')}</table>` : '本週還沒有紀錄。';
+  $('#rlb', V).innerHTML = (A.rank || []).length ? `<table class="board"><tr><th>#</th><th>修練者</th><th>勝</th><th>平</th><th>敗</th></tr>${A.rank.map((x, i) => `<tr class="${x.me ? 'me' : ''}"><td>${medal(i)}</td><td>${esc(x.nick)}</td><td>${x.w}</td><td>${x.d}</td><td>${x.l}</td></tr>`).join('')}</table>` : '還沒有完成的對戰。';
+}
+function dailyStreak() { const D = S.daily || {}; let n = 0; const d = new Date(); if (!D[nowDay()]) d.setDate(d.getDate() - 1);
+  for (;;) { const k = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); if (!D[k]) break; n++; d.setDate(d.getDate() - 1); } return n; }
 
 /* ---------------- me ---------------- */
 function viewMe(V) {
@@ -1542,7 +1695,7 @@ async function doLogin(sid, name, nick, silent) {
   else go('map');
 }
 $('#tabs').addEventListener('click', e => { const b = e.target.closest('button'); if (b) go(b.dataset.v); });
-$('#modal').addEventListener('click', e => { if (e.target.id === 'modal') closeModal(); });
+$('#modal').addEventListener('click', e => { if (e.target.id === 'modal' && !ARENA.playing) closeModal(); });
 $('#btnTicket').onclick = async () => {
   const p = $('#pass').value; if (!p) return;
   $('#errTicket').textContent = '驗證中…';

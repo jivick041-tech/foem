@@ -267,7 +267,7 @@ table.data th{background:#f8f5ec}
 <div id="modal" class="hidden"><div class="box" id="modalBox"></div></div>
 
 <script src="config.js"></script>
-<script src="content.enc.js?v=e5f5fbb912"></script>
+<script src="content.enc.js?v=2fb551b063"></script>
 <script>
 /* 設定在 config.js（老師可直接在 GitHub 網頁上編輯）；加密內容在 content.enc.js */
 const CONFIG = Object.assign({ API: '', ROSTER: false, FREE_ROAM: false, BOSS_REQ: 0.6 }, window.PVQ_CONFIG || {});
@@ -312,7 +312,7 @@ function loadContent(src) {
 /* ---------------- 課程與分區 ---------------- */
 const COURSES = {
   pv: { no: '課程一', name: '半導體元件與太陽電池', icon: '☀️',
-    src: '主要教材：J. Nelson《The Physics of Solar Cells》（中譯本），並整合 P. Würfel《Physics of Solar Cells》與 S. Fonash《Solar Cell Device Physics》。',
+    src: '主要教材：J. Nelson《The Physics of Solar Cells》（中譯本），並整合 P. Würfel《Physics of Solar Cells》、S. Fonash《Solar Cell Device Physics》(2nd ed.)、J. Bisquert《The Physics of Solar Cells: Perovskites, Organics, and Photovoltaic Fundamentals》、A. Kitai《Principles of Solar Cells, LEDs and Diodes》、C. J. Chen《Physics of Solar Energy》與《The Future of Semiconductor Oxides in Next-Generation Solar Cells》。',
     parts: { basic: { icon: '🟦', name: '基本知識：半導體元件基礎', desc: '能帶、載子、產生與複合、接面、p-n 結二極體——所有半導體元件共通的地基。' },
              adv: { icon: '🟧', name: '進階知識：太陽電池', desc: '把半導體基礎用在太陽電池：特性與效率極限、各種電池技術與光學管理。' },
              app: { icon: '🟩', name: '研究專題：鈣鈦礦與新世代電池', desc: '和實驗室研究直接相關的專題。各專題之間互不鎖定，並連結「研究前線」的最新文獻持續延伸。' } },
@@ -322,7 +322,7 @@ const COURSES = {
     orig: c => (c.id === 0 || c.bonus) ? '' : 'Nelson 原書第 ' + c.id + ' 章',
     secs: { math: '數理基礎', semi: '半導體元件', pv: '太陽電池' } },
   ec: { no: '課程二', name: '電化學', icon: '⚗️',
-    src: '主要教材：A. J. Bard & L. R. Faulkner《Electrochemical Methods》(2nd ed.)、T. ul Haq & Y. Haik《Electrochemical Water Splitting》(2024)，並整合燃料電池電催化、電化學合成氨回顧與水電解產業化回顧論文。',
+    src: '主要教材：A. J. Bard & L. R. Faulkner《Electrochemical Methods》(2nd ed.)、T. ul Haq & Y. Haik《Electrochemical Water Splitting》(2024)，並整合燃料電池電催化、電化學合成氨回顧、水電解產業化回顧論文，以及 C. J. Chen《Physics of Solar Energy》的太陽能電化學章節。',
     parts: { basic: { icon: '🟦', name: '基本知識：電化學基礎', desc: '電化學池、熱力學、電極動力學、質傳、電雙層與量測技術——讀懂任何電化學論文的地基。' },
              adv: { icon: '🟧', name: '進階知識：電催化原理與評比', desc: '吸附、火山圖與 d 能帶，以及如何正確量測、評比觸媒——讀懂並寫出經得起審稿的數據。' },
              app: { icon: '🟩', name: '研究專題：產氫、產氧、產氨與太陽能驅動', desc: '依實驗室研究主題分區，各專題之間互不鎖定，並連結「研究前線」的最新文獻持續延伸。' } },
@@ -330,9 +330,27 @@ const COURSES = {
       [107, 'adv'], [110, 'adv'], [108, 'app'], [109, 'app'], [111, 'app'], [112, 'app'], [113, 'app']],
     topics: { 108: ['HER'], 109: ['OER'], 111: ['OWS'], 112: ['NH3'], 113: ['SOLAR', 'CO2'] },
     orig: c => c.ref || '',
-    secs: { chem: '化學與數理', ec: '電化學基礎', cat: '電催化與應用' } }
+    secs: { chem: '化學與數理', ec: '電化學基礎', cat: '電催化與應用' } },
+  oe: { no: '課程三', name: '有機光電：OPV 與 OPD', icon: '🌈',
+    src: '主要教材：Rand & Richter (eds.)《Organic Solar Cells: Fundamentals, Devices, and Upscaling》、Q. Qiao (ed.)《Organic Solar Cells: Materials, Devices, Interfaces, and Modeling》、P. Kumar《Organic Solar Cells: Device Physics, Processing, Degradation, and Prevention》、D. Yan et al.《Introduction to Organic Semiconductor Heterojunctions》、S. Tiwari (ed.)《Printable Solar Cells》，並整合有機光偵測器（OPD）回顧與研究論文，以及本實驗室的製程與 X 光散射研究。；另參考 J. Bisquert《The Physics of Solar Cells》（有機與 CT 態章節）與 A. Kitai《Principles of Solar Cells, LEDs and Diodes》Ch6',
+    parts: { basic: { icon: '🟦', name: '基本知識：有機半導體', desc: '共軛分子、激子、電荷傳輸與施體／受體界面——有機光電元件共通的地基。' },
+             adv: { icon: '🟧', name: '進階知識：元件物理與製程', desc: '形貌、OPV 與 OPD 的元件物理，以及從旋塗到卷對卷的印刷放大。' },
+             app: { icon: '🟩', name: '研究專題：穩定性與應用', desc: '依實驗室研究主題分區（穩定性、OPD 應用、OPV 應用），各專題互不鎖定，並連結「研究前線」的最新文獻持續延伸。' } },
+    order: [[200, 'basic'], [201, 'basic'], [202, 'basic'], [203, 'basic'], [204, 'adv'], [205, 'adv'], [206, 'adv'], [207, 'adv'], [208, 'app'], [209, 'app'], [210, 'app']],
+    topics: { 208: ['OSTAB'], 209: ['OPD'], 210: ['OPV'] },
+    orig: c => c.ref || '',
+    secs: { mol: '有機半導體基礎', dev: '元件物理', proc: '製程與應用' } },
+  pm: { no: '課程四', name: '有機化學與高分子：從反應機構到功能高分子', icon: '🔗',
+    src: '主要教材：W.-F. Su《Principles of Polymer Design and Synthesis》(Springer, 2013)、Ouellette & Rawn《Organic Chemistry: Structure, Mechanism, Synthesis》與《Organic Synthesis》、Vollhardt & Schore《有機化學：結構與功能》、有機化學實驗手冊，以及高分子熱分析專書；並連結課程三的共軛高分子與未來的生醫材料研究。',
+    parts: { basic: { icon: '🟦', name: '基本知識：有機化學', desc: '鍵結與共振、反應機構的語言、立體化學與高分子合成會用到的反應工具箱。' },
+             adv: { icon: '🟧', name: '進階知識：高分子合成', desc: '逐步聚合、自由基鏈聚合、活性聚合與開環聚合、共聚合與共軛高分子的偶合聚合。' },
+             app: { icon: '🟩', name: '研究專題：鑑定與功能高分子', desc: '分子量與熱分析、共軛高分子材料設計、水膠與生醫高分子，各專題互不鎖定，並連結「研究前線」。' } },
+    order: [[300, 'basic'], [301, 'basic'], [302, 'basic'], [303, 'basic'], [304, 'adv'], [305, 'adv'], [306, 'adv'], [307, 'adv'], [308, 'app'], [309, 'app'], [310, 'app']],
+    topics: { 308: ['METHOD'], 309: ['CPOLY'], 310: ['GEL'] },
+    orig: c => c.ref || '',
+    secs: { org: '有機化學基礎', syn: '高分子合成', phys: '鑑定與應用' } }
 };
-const CKEYS = ['pv', 'ec'];
+const CKEYS = ['pv', 'ec', 'oe', 'pm'];
 function arrange() {
   CH.forEach(c => {
     c.course = c.course || 'pv';
@@ -670,7 +688,7 @@ function formulaCard(f) {
 function buildPlot(P) {
   const cfg = Object.assign({}, P);
   cfg.series = (P.series || []).map(sr => { if (sr.pts) return sr; const [a, b] = sr.x || P.x, n = sr.n || 300, pts = [];
-    for (let i = 0; i <= n; i++) { const x = a + (b - a) * i / n; let y; try { y = sr.f(x); } catch (e) { y = NaN; } pts.push([x, y]); } return Object.assign({}, sr, { pts }); });
+    for (let i = 0; i <= n; i++) { const x = a + (b - a) * i / n; let y; try { y = sr.f(x); } catch (e) { y = NaN; } pts.push([x, y]); } const o = Object.assign({}, sr, { pts }); if (sr.lx != null) o.lp = Math.max(0, Math.min(n, Math.round((sr.lx - a) / (b - a) * n))); return o; });
   return cfg;
 }
 
@@ -1040,8 +1058,8 @@ function viewPlacement(V, ck) {
 
 /* ---------------- 📡 研究前線（文獻卡 + Journal Club） ---------------- */
 const FRONT = { cards: [], jc: [], comments: [], loaded: false, err: '' };
-const TOPICS = { PSC: '🧱 鈣鈦礦電池：效率與界面', PSCSTAB: '🛡️ 鈣鈦礦穩定性', TANDEM: '🥞 疊層電池', SOLAR: '☀️ 太陽能驅動化學', HER: '💧 產氫 HER', OER: '🫧 產氧 OER', OWS: '⚡ 全水分解', NH3: '🌱 產氨', CO2: '🍃 CO₂ 捕捉／還原', METHOD: '📏 方法與規範' };
-const TOPIC_GROUPS = [['☀️ 太陽電池', ['PSC', 'PSCSTAB', 'TANDEM']], ['⚗️ 電化學與太陽燃料', ['SOLAR', 'HER', 'OER', 'OWS', 'NH3', 'CO2']], ['📏 共通', ['METHOD']]];
+const TOPICS = { PSC: '🧱 鈣鈦礦電池：效率與界面', PSCSTAB: '🛡️ 鈣鈦礦穩定性', TANDEM: '🥞 疊層電池', SOLAR: '☀️ 太陽能驅動化學', HER: '💧 產氫 HER', OER: '🫧 產氧 OER', OWS: '⚡ 全水分解', NH3: '🌱 產氨', CO2: '🍃 CO₂ 捕捉／還原', OPV: '🌈 有機太陽電池 OPV', OPD: '📷 有機光偵測器 OPD', OSTAB: '🛡️ 有機元件穩定性與製程', CPOLY: '〰️ 共軛高分子合成與設計', GEL: '💧 水膠與生醫高分子', METHOD: '📏 方法與規範' };
+const TOPIC_GROUPS = [['☀️ 太陽電池', ['PSC', 'PSCSTAB', 'TANDEM']], ['⚗️ 電化學與太陽燃料', ['SOLAR', 'HER', 'OER', 'OWS', 'NH3', 'CO2']], ['🌈 有機光電', ['OPV', 'OPD', 'OSTAB']], ['🔗 高分子與生醫材料', ['CPOLY', 'GEL']], ['📏 共通', ['METHOD']]];
 const cardDone = cd => { const ex = parseJSON(cd.ex, []); return ex.length ? ex.every((q, j) => S.quiz['F:' + cd.id + '#' + j] && S.quiz['F:' + cd.id + '#' + j].ok) : !!(S.fopen || {})[cd.id]; };
 function checkTrack(t) {
   const L = FRONT.cards.filter(c => c.topics.includes(t)); S.tracks = S.tracks || {};
@@ -1087,7 +1105,7 @@ function openConcept(id) {
 }
 function conceptChip(id) {
   const f = findConcept(id); if (!f) return `<span class="pill gray">${esc(id)}</span>`;
-  return `<button class="btn small ghost" style="margin:2px" onclick="openConcept('${id}')">${f.c.course === 'ec' ? '⚗️' : '☀️'} ${esc(id)} ${esc(f.k.title)}</button>`;
+  return `<button class="btn small ghost" style="margin:2px" onclick="openConcept('${id}')">${(COURSES[f.c.course] || COURSES.pv).icon} ${esc(id)} ${esc(f.k.title)}</button>`;
 }
 function frontierFor(cid) {
   const L = FRONT.cards.filter(c => c.concepts.includes(cid));
@@ -1200,10 +1218,10 @@ function viewFrontier(V, openId) {
 /* ---------------- ⚔️ 競技場：每日挑戰、對戰、週聯賽 ---------------- */
 function hashStr(t) { let h = 2166136261; for (const ch of String(t)) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
 function rng32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
-const ARENA_SCOPES = { pv: '☀️ 課程一', ec: '⚗️ 課程二', all: '🌐 全部課程', basic: '🟦 只考基本知識' };
+const ARENA_SCOPES = { pv: '☀️ 課程一', ec: '⚗️ 課程二', oe: '🌈 課程三', pm: '🔗 課程四', all: '🌐 全部課程', basic: '🟦 只考基本知識' };
 function arenaPool(scope) {
   const out = [];
-  CH.forEach(c => { if (scope === 'pv' || scope === 'ec') { if (c.course !== scope) return; } else if (scope === 'basic' && c.part !== 'basic') return;
+  CH.forEach(c => { if (COURSES[scope]) { if (c.course !== scope) return; } else if (scope === 'basic' && c.part !== 'basic') return;
     c.concepts.forEach(k => (k.quiz || []).forEach((q, j) => out.push(k.id + '#' + j))); });
   return out.sort();
 }
@@ -1448,7 +1466,7 @@ function drawFigs(root, figs) {
   requestAnimationFrame(() => (figs || []).forEach((f, j) => { if (!f.plot) return; const cv = $(`figure[data-j="${j}"] canvas`, root); if (cv && cv.clientWidth) plot(cv, buildPlot(f.plot)); }));
 }
 function figsHTML(figs) { return (figs || []).map((f, j) => `<figure class="fig" data-j="${j}">${f.svg ? f.svg : `<canvas class="fplot" style="height:${f.h || 240}px"></canvas>`}${f.cap ? `<figcaption>${f.cap}</figcaption>` : ''}</figure>`).join(''); }
-const INSTR_GROUPS = [['☀️ 元件與光電', ['JV', 'EQE', 'PL', 'UVVIS', 'SCLC']], ['🔬 結構與表面', ['XRD', 'SEM', 'XPS', 'RAMAN', 'XAS']], ['⚗️ 電化學', ['CV', 'EIS', 'RDE']], ['🧪 產物與組成定量', ['GC', 'NMR', 'INDO', 'ICP']]];
+const INSTR_GROUPS = [['☀️ 元件與光電', ['JV', 'EQE', 'PL', 'UVVIS', 'SCLC']], ['🔬 結構與表面', ['XRD', 'SEM', 'XPS', 'RAMAN', 'XAS']], ['⚗️ 電化學', ['CV', 'EIS', 'RDE']], ['🧪 產物與組成定量', ['GC', 'NMR', 'INDO', 'ICP']], ['🌈 有機光電', ['GIWAXS', 'AFM', 'NOISE', 'TPV']], ['🔗 高分子鑑定', ['GPC', 'DSC', 'TGA', 'FTIR']]];
 function instrGroups() {
   const used = new Set(), G = INSTR_GROUPS.map(([g, ids]) => [g, ids.map(id => XC.instr.find(I => I.id === id)).filter(Boolean)]);
   G.forEach(([, L]) => L.forEach(I => used.add(I.id)));
@@ -1542,7 +1560,7 @@ function plot(cv, cfg) {
   const X = x => m.l + (x - x0) / (x1 - x0) * (W - m.l - m.r);
   const Y = y => H - m.b - (y - y0) / (y1 - y0) * (H - m.t - m.b);
   g.clearRect(0, 0, W, H); g.font = '12px sans-serif'; g.strokeStyle = '#e5e7eb'; g.fillStyle = '#6b7280'; g.lineWidth = 1;
-  const nice = (a, b, n) => { const s = Math.pow(10, Math.floor(Math.log10((b - a) / n))); const k = [1, 2, 5, 10].find(k => (b - a) / (s * k) <= n) * s; const out = []; for (let v = Math.ceil(a / k) * k; v <= b + 1e-9; v += k) out.push(+v.toFixed(10)); return out; };
+  const nice = (a, b, n) => { if (a > b) [a, b] = [b, a]; const s = Math.pow(10, Math.floor(Math.log10((b - a) / n))); const k = [1, 2, 5, 10].find(k => (b - a) / (s * k) <= n) * s; const out = []; for (let v = Math.ceil(a / k) * k; v <= b + 1e-9; v += k) out.push(+v.toFixed(10)); return out; };
   nice(x0, x1, 8).forEach(v => { g.beginPath(); g.moveTo(X(v), m.t); g.lineTo(X(v), H - m.b); g.stroke(); const t = String(cfg.xfmt ? cfg.xfmt(v) : v), w = g.measureText(t).width; g.fillText(t, Math.min(W - w - 2, Math.max(2, X(v) - w / 2)), H - m.b + 15); });
   nice(y0, y1, 6).forEach(v => { g.beginPath(); g.moveTo(m.l, Y(v)); g.lineTo(W - m.r, Y(v)); g.stroke(); const t = String(cfg.yfmt ? cfg.yfmt(v) : v); g.fillText(t, m.l - 6 - g.measureText(t).width, Y(v) + 4); });
   g.fillStyle = '#111827'; { const t = cfg.xl || '', w = g.measureText(t).width; g.fillText(t, m.l + (W - m.l - m.r - w) / 2, H - 6); }

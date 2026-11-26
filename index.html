@@ -225,7 +225,7 @@ table.data th{background:#f8f5ec}
       <div class="ticket">✅ 入場券有效！<br><b>第二步：登錄修練者身分</b>（用來保存進度與學習紀錄）</div>
       <div class="field"><label for="sid">學號</label><input id="sid" autocomplete="off" placeholder="例如 M11328001"></div>
       <div class="field"><label for="sname">真實姓名 <span class="muted" style="font-weight:400">（只有老師看得到）</span></label><input id="sname" autocomplete="off" placeholder="例如 王小明"></div>
-      <div class="field"><label for="snick">暱稱 <span class="muted" style="font-weight:400">（顯示在排行榜，大家看得到）</span></label><input id="snick" autocomplete="off" maxlength="12" placeholder="例如 光子小王子"></div>
+      <div class="field"><label for="snick">暱稱 <span class="muted" style="font-weight:400">（顯示在排行榜，大家看得到）</span></label><input id="snick" autocomplete="off" maxlength="12" placeholder="例如 手套箱小王子"></div>
       <button class="btn wide" id="btnLogin">開始修練 ▶</button>
       <div class="err" id="errLogin"></div>
       <div class="muted" style="font-size:12px;margin-top:8px">你的作答、花費時間與自評會傳給指導老師，用來調整教學。</div>
@@ -241,7 +241,7 @@ table.data th{background:#f8f5ec}
     <div class="player">
       <span id="pName"></span>
       <span class="lv" id="pLv">Lv1</span>
-      <span id="pTitle" class="muted" style="color:#cbd5e1"></span>
+      <span id="pTitle" onclick="showLadder()" style="cursor:pointer" title="查看冒險者之路" class="muted" style="color:#cbd5e1"></span>
       <div class="xpbar" title="經驗值"><i id="pXp"></i></div>
       <span id="pXpTxt" style="font-size:12px;color:#cbd5e1"></span>
     </div>
@@ -267,7 +267,7 @@ table.data th{background:#f8f5ec}
 <div id="modal" class="hidden"><div class="box" id="modalBox"></div></div>
 
 <script src="config.js"></script>
-<script src="content.enc.js?v=2fb551b063"></script>
+<script src="content.enc.js?v=ff46b00c62"></script>
 <script>
 /* 設定在 config.js（老師可直接在 GitHub 網頁上編輯）；加密內容在 content.enc.js */
 const CONFIG = Object.assign({ API: '', ROSTER: false, FREE_ROAM: false, BOSS_REQ: 0.6 }, window.PVQ_CONFIG || {});
@@ -340,28 +340,54 @@ const COURSES = {
     topics: { 208: ['OSTAB'], 209: ['OPD'], 210: ['OPV'] },
     orig: c => c.ref || '',
     secs: { mol: '有機半導體基礎', dev: '元件物理', proc: '製程與應用' } },
-  pm: { no: '課程四', name: '有機化學與高分子：從反應機構到功能高分子', icon: '🔗',
-    src: '主要教材：W.-F. Su《Principles of Polymer Design and Synthesis》(Springer, 2013)、Ouellette & Rawn《Organic Chemistry: Structure, Mechanism, Synthesis》與《Organic Synthesis》、Vollhardt & Schore《有機化學：結構與功能》、有機化學實驗手冊，以及高分子熱分析專書；並連結課程三的共軛高分子與未來的生醫材料研究。',
-    parts: { basic: { icon: '🟦', name: '基本知識：有機化學', desc: '鍵結與共振、反應機構的語言、立體化學與高分子合成會用到的反應工具箱。' },
-             adv: { icon: '🟧', name: '進階知識：高分子合成', desc: '逐步聚合、自由基鏈聚合、活性聚合與開環聚合、共聚合與共軛高分子的偶合聚合。' },
-             app: { icon: '🟩', name: '研究專題：鑑定與功能高分子', desc: '分子量與熱分析、共軛高分子材料設計、水膠與生醫高分子，各專題互不鎖定，並連結「研究前線」。' } },
-    order: [[300, 'basic'], [301, 'basic'], [302, 'basic'], [303, 'basic'], [304, 'adv'], [305, 'adv'], [306, 'adv'], [307, 'adv'], [308, 'app'], [309, 'app'], [310, 'app']],
-    topics: { 308: ['METHOD'], 309: ['CPOLY'], 310: ['GEL'] },
+  oc: { no: '課程四', name: '有機化學', icon: '🧪',
+    src: '主要教材：Ouellette & Rawn《Organic Chemistry: Structure, Mechanism, Synthesis》(2nd ed., 2018) 全書，輔以 Vollhardt & Schore《有機化學：結構與功能》、Ouellette & Rawn《Organic Synthesis》與有機化學實驗手冊。基本知識區依教科書章節完整涵蓋（特用性章節精簡），研究專題連結實驗室的有機光電分子合成。',
+    parts: { basic: { icon: '🟦', name: '基本知識', desc: '' }, adv: { icon: '🟧', name: '進階', desc: '' }, app: { icon: '🟩', name: '研究專題：有機光電分子合成', desc: '把基本反應串成真正的合成路線：D–A 單體、NFA 端基與偶合聚合前驅物。' } },
+    zones: [
+      { key: 'A', icon: '🟦', lab: '結構', name: '基本知識 I：結構與語言', desc: '鍵結、命名、反應機構的語言、構形與立體化學。' },
+      { key: 'B', icon: '🟦', lab: '脂肪族', name: '基本知識 II：脂肪族反應', desc: '烯、炔、鹵烷、取代與消去、醇、醚與環氧化物。' },
+      { key: 'C', icon: '🟦', lab: '芳香', name: '基本知識 III：共軛、芳香與光譜鑑定', desc: '共軛系統、芳香性與芳香取代、周環反應，以及 UV-vis、IR、NMR、MS。' },
+      { key: 'D', icon: '🟦', lab: '羰基', name: '基本知識 IV：羰基與含氮化合物', desc: '醛酮、羧酸與衍生物、羰基縮合、胺與醯胺。' },
+      { key: 'E', icon: '🟦', lab: '合成', name: '基本知識 V：有機金屬、合成策略與實驗', desc: '過渡金屬與偶合反應、逆合成與保護基、實驗技術、生物分子。' },
+      { key: 'app', icon: '🟩', lab: '專題', name: '研究專題：有機光電分子合成', desc: '把基本反應串成實驗室真正用到的合成路線。' } ],
+    order: [[300,'basic','A'],[301,'basic','A'],[302,'basic','A'],[303,'basic','A'],[304,'basic','A'],
+      [305,'basic','B'],[306,'basic','B'],[307,'basic','B'],[308,'basic','B'],[309,'basic','B'],[310,'basic','B'],
+      [311,'basic','C'],[312,'basic','C'],[313,'basic','C'],[314,'basic','C'],[315,'basic','C'],[316,'basic','C'],[317,'basic','C'],
+      [318,'basic','D'],[319,'basic','D'],[320,'basic','D'],[321,'basic','D'],[322,'basic','D'],[323,'basic','D'],
+      [324,'basic','E'],[325,'basic','E'],[326,'basic','E'],[327,'basic','E'],[328,'app','app']],
+    topics: { 328: ['CPOLY', 'OPV'] },
     orig: c => c.ref || '',
-    secs: { org: '有機化學基礎', syn: '高分子合成', phys: '鑑定與應用' } }
+    secs: { str: '結構與立體', rxn: '反應與機構', spec: '光譜與合成' } },
+  pm: { no: '課程五', name: '高分子科學', icon: '🔗',
+    src: '主要教材：W.-F. Su《Principles of Polymer Design and Synthesis》(Springer, 2013) 全書、W. Hu《Polymer Physics: A Molecular Approach》(Springer, 2013) 全書，以及高分子熱分析專書。基本知識區涵蓋鏈與溶液、聚合化學、運動與性質、結晶與鑑定；研究專題連結共軛高分子與水膠／生醫高分子。',
+    parts: { basic: { icon: '🟦', name: '基本知識', desc: '' }, adv: { icon: '🟧', name: '進階', desc: '' }, app: { icon: '🟩', name: '研究專題', desc: '' } },
+    zones: [
+      { key: 'A', icon: '🟦', lab: '鏈與溶液', name: '基本知識 I：鏈結構、統計與溶液', desc: '分子量、鏈的半剛性與統計、熵彈性、標度、Flory–Huggins 與相分離、分子量量測。' },
+      { key: 'B', icon: '🟦', lab: '聚合', name: '基本知識 II：聚合化學', desc: '逐步、自由基、離子、配位、可控、共聚與開環聚合，以及高分子反應與降解。' },
+      { key: 'C', icon: '🟦', lab: '性質', name: '基本知識 III：運動、性質、結晶與鑑定', desc: '鏈動力學、黏彈性、玻璃轉移、力學、流變、結晶、電光性質與鑑定。' },
+      { key: 'app', icon: '🟩', lab: '專題', name: '研究專題：共軛高分子與生醫高分子', desc: '各專題互不鎖定，並連結「研究前線」。' } ],
+    order: [[400,'basic','A'],[401,'basic','A'],[402,'basic','A'],[403,'basic','A'],[404,'basic','A'],[405,'basic','A'],[406,'basic','A'],[407,'basic','A'],
+      [408,'basic','B'],[409,'basic','B'],[410,'basic','B'],[411,'basic','B'],[412,'basic','B'],[413,'basic','B'],[414,'basic','B'],[415,'basic','B'],[416,'basic','B'],[417,'basic','B'],[418,'basic','B'],
+      [419,'basic','C'],[420,'basic','C'],[421,'basic','C'],[422,'basic','C'],[423,'basic','C'],[424,'basic','C'],[425,'basic','C'],[426,'basic','C'],[427,'basic','C'],
+      [428,'app','app'],[429,'app','app']],
+    topics: { 427: ['METHOD'], 428: ['CPOLY'], 429: ['GEL'] },
+    orig: c => c.ref || '',
+    secs: { chain: '鏈與溶液', syn: '聚合化學', prop: '性質與鑑定' } }
 };
-const CKEYS = ['pv', 'ec', 'oe', 'pm'];
+const CKEYS = ['pv', 'ec', 'oe', 'oc', 'pm'];
 function arrange() {
   CH.forEach(c => {
     c.course = c.course || 'pv';
     const C = COURSES[c.course], k = C.order.findIndex(o => o[0] === c.id);
-    c.ord = CKEYS.indexOf(c.course) * 100 + (k < 0 ? 99 : k); c.part = k < 0 ? 'adv' : C.order[k][1];
+    c.ord = CKEYS.indexOf(c.course) * 100 + (k < 0 ? 99 : k); c.part = k < 0 ? 'adv' : C.order[k][1]; c.zone = k < 0 ? c.part : (C.order[k][2] || c.part);
   });
   CH.sort((a, b) => a.ord - b.ord);
   CKEYS.forEach(ck => {
-    let nb = 0, na = 0, np = 0;
+    let nb = 0, na = 0, np = 0; const zc = {};
     CH.filter(c => c.course === ck).forEach((c, i) => {
+      const ZN = (COURSES[ck].zones || []).find(z => z.key === c.zone);
       if (i === 0) c.label = '新手村';
+      else if (ZN && c.part !== 'app') c.label = ZN.lab + ' 第 ' + (zc[c.zone] = (zc[c.zone] || 0) + 1) + ' 關';
       else if (c.part === 'app') c.label = '專題 ' + (++np);
       else if (c.bonus) c.label = '進階・番外篇';
       else if (c.part === 'basic') c.label = '基礎 第 ' + (++nb) + ' 關';
@@ -383,7 +409,7 @@ const Rec = {
   init() { this.q = LS.get(KEYP + 'outbox', []); setInterval(() => this.flush(), 15000); },
   send(type, data) {
     if (!CONFIG.API) return;
-    this.q.push(Object.assign({ type, sid: S.sid, name: S.name, nick: S.nick, xp: S.xp, level: levelOf(S.xp).lv, ts: new Date().toISOString(), app: 'PVQuest' }, data));
+    this.q.push(Object.assign({ type, sid: S.sid, name: S.name, nick: S.nick, xp: S.xp, level: levelOf(effXP()).lv, ts: new Date().toISOString(), app: 'PVQuest' }, data));
     LS.set(KEYP + 'outbox', this.q.slice(-300));
     clearTimeout(this._t); this._t = setTimeout(() => this.flush(), 1500);
   },
@@ -414,14 +440,70 @@ function save(sync = true) {
   S.updated = Date.now();
   LS.set(KEYP + 'st_' + S.sid, S);
   if (sync && CONFIG.API) { clearTimeout(save._t); save._t = setTimeout(() => {
-    Rec.send('progress', { xp: S.xp, level: levelOf(S.xp).lv, data: JSON.stringify(Object.assign({}, S, { name: '' })) }); }, 4000); }
+    Rec.send('progress', { xp: S.xp, level: levelOf(effXP()).lv, data: JSON.stringify(Object.assign({}, S, { name: '' })) }); }, 4000); }
 }
 const LEVELS = [
-  [0, '光子見習生'], [60, '能帶探路者'], [150, '載子學徒'], [280, '費米能階觀測員'], [450, '擴散長度測量師'],
-  [650, 'p-n 結守門人'], [900, '量子效率鑑定師'], [1200, '填充因子調校師'], [1550, '陷光術士'],
-  [1950, '異質接面工匠'], [2400, '疊層電池建築師'], [2900, '細緻平衡賢者'], [3500, 'Shockley–Queisser 守護者'],
-  [4200, '光伏大師'], [5000, '太陽之子']
+  [0, '🏡 村民', '還在家鄉的小村子裡。打開第一個觀念，踏出村門。'],
+  [60, '🎒 遠行旅人', '背起行囊上路：開始讀懂觀念與白話說明。'],
+  [150, '🗡️ 見習侍從', '跟著前輩學功夫：小測驗已能穩定過關。'],
+  [280, '🛡️ 城門守衛', '守住自己的崗位：能獨立解出第一批計算題。'],
+  [450, '🏹 遊俠', '在荒野中辨認足跡：數據判讀題難不倒你。'],
+  [650, '📜 卷軸學者', '讀遍圖書館的古卷：基礎知識成為隨手可用的直覺。'],
+  [900, '⚗️ 鍊金術士', '把原料煉成寶物：能把材料做成元件。'],
+  [1200, '🧙 法師', '在議會上施展法術：組會上講得清楚、說得服人。'],
+  [1550, '🗺️ 探險隊長', '帶隊跨越不同王國：光、電、碳、鏈的知識開始互通。'],
+  [1950, '⚔️ 騎士', '受封為騎士：能寫出結構完整的論文初稿。'],
+  [2400, '🏰 城堡領主', '治理一方領地：自提問題、規劃實驗、照顧學弟妹。'],
+  [2900, '🐉 屠龍者', '面對最難的審查之龍：看穿論文的亮點與破綻。'],
+  [3500, '🔭 星象賢者', '讀懂星辰的預言：獨立完成從構想到發表的研究。'],
+  [4200, '👑 王國守護者', '光電、能源、材料融會貫通，是整個王國的支柱。'],
+  [5000, '✨ 傳奇英雄', '你的名字被刻在石碑上，成為下一代冒險者的傳說。']
 ];
+/* 魔法指環：依各課程的冒險量鍛造 */
+const ROOTS = { pv: ['☀️', '曙光之戒'], ec: ['⚡', '雷霆之戒'], oe: ['🌈', '虹光之戒'], oc: ['🌿', '森林之戒'], pm: ['🕸️', '織網之戒'] };
+const ROOT_DESC = { pv: '曙光之戒：馴服光子與能帶，太陽電池的試煉勢如破竹。', ec: '雷霆之戒：號令電子與離子，產氫、產氧、產氨的法陣信手拈來。', oe: '虹光之戒：看穿給體與受體的幻術，有機光電是你的主場。', oc: '森林之戒：碳的千變萬化盡在掌中，合成與機構推演自成一派。', pm: '織網之戒：萬千長鏈為你所用，高分子的網羅無所不包。' };
+function rootScores() {
+  const sc = {}; CKEYS.forEach(k => sc[k] = 0);
+  CH.forEach(c => { if (sc[c.course] == null) return; sc[c.course] += c.concepts.filter(k => S.concept[k.id]).length + (S.boss[c.id] && S.boss[c.id].win ? 5 : 0); });
+  return sc;
+}
+function spiritRoot() {
+  const sc = rootScores(), tot = Object.values(sc).reduce((a, b) => a + b, 0);
+  if (tot < 8) return { name: '💍 尚未獲得指環', desc: `再通過 ${8 - tot} 個觀念（或擊敗魔王），就能鍛造出你的第一枚魔法指環。哪一門課冒險最多，就鍛出哪一種指環。`, keys: [], sc, tot };
+  const ks = CKEYS.filter(k => sc[k] / tot >= 0.15).sort((a, b) => sc[b] - sc[a]);
+  const grade = tot >= 150 ? '傳說級' : tot >= 60 ? '精煉' : '初鑄';
+  let name;
+  if (ks.length === 1 && sc[ks[0]] / tot >= 0.7) name = `🔥 ${ROOTS[ks[0]][1]}・戒主`;
+  else if (ks.length >= 5) name = '🌟 五環同輝（全指環聯盟）';
+  else name = ks.map(k => ROOTS[k][0] + ROOTS[k][1]).join(' + ');
+  return { name: name + `（${grade}）`, desc: ks.map(k => ROOT_DESC[k]).join('<br>'), keys: ks, sc, tot };
+}
+/* 暗影侵蝕：久未冒險會倒退；回來後獲得的經驗加倍補回 */
+function effXP() { return Math.max(0, S.xp - (S.decay || 0)); }
+function applyDecay(prevDay) {
+  if (!prevDay) return null;
+  const [y, m, d] = prevDay.split('-').map(Number), last = new Date(y, m - 1, d), now = new Date(); now.setHours(0, 0, 0, 0);
+  const idle = Math.round((now - last) / 864e5) - 1;
+  if (idle < 7) return null; // 每週至少上線一次就不受影響
+  let lost = 0;
+  if (idle >= 14) lost = effXP();
+  else for (let i = 7; i <= idle; i++) lost += Math.max(10, Math.round(0.08 * (effXP() - lost)));
+  lost = Math.min(lost, effXP());
+  S.decay = (S.decay || 0) + lost;
+  const st = idle >= 14 ? ['🏚️', '淪為流浪者', `你已 ${idle} 天沒有冒險（超過兩週），裝備散落、名聲消逝，回到村子從村民重新開始。`] : ['🌑', '暗影侵蝕', `你已 ${idle} 天沒有冒險（超過一週），暗影開始侵蝕你的力量。再拖到兩週就會淪為流浪者！`];
+  S.demon = 0;
+  return { idle, lost, st };
+}
+function showLadder() {
+  const L = levelOf(effXP()), R = spiritRoot();
+  modal(`<h2>🗺️ FOEM 冒險者之路</h2>
+  <div class="card" style="margin:6px 0;background:#f5f3ff"><b>你的魔法指環：${R.name}</b><div class="muted" style="font-size:13px;margin-top:4px">${R.desc}</div>
+  <div style="font-size:12px;margin-top:6px">${CKEYS.map(k => `${ROOTS[k][0]} ${COURSES[k].name}：${R.sc[k] || 0}`).join('　')}</div></div>
+  ${S.decay ? `<div class="card" style="margin:6px 0;background:#fef2f2">🌑 被暗影奪走的經驗 ${S.decay}：之後冒險獲得的經驗會<b>加倍</b>奪回，奪回為止。${S.demon ? `<br>💀 黑暗未散：再獲得 ${S.demon} 經驗即可驅散心中暗影。` : ''}</div>` : ''}
+  <p class="muted" style="font-size:13px">經驗來自完成觀念、題目、魔王與每日冒險。每週至少上線一次就安全；超過一週沒上線，暗影開始侵蝕（每天被奪走約 8 % 經驗）；超過兩週，直接淪為流浪者、回到村民。</p>
+  <table class="data" style="width:100%;font-size:14px"><tr><th>稱號</th><th>所需經驗</th><th>這個階段的你</th></tr>${LEVELS.map((x, i) => `<tr style="${i + 1 === L.lv ? 'background:#fef3c7;font-weight:700' : (i + 1 < L.lv ? 'color:#6b7280' : '')}"><td>${x[1]}${i + 1 === L.lv ? ' ⬅ 你' : ''}</td><td>${x[0]}</td><td>${x[2]}</td></tr>`).join('')}</table>
+  <button class="btn" style="margin-top:10px" onclick="closeModal()">繼續冒險</button>`);
+}
 function levelOf(xp) {
   let i = 0; while (i + 1 < LEVELS.length && xp >= LEVELS[i + 1][0]) i++;
   const cur = LEVELS[i][0], nxt = LEVELS[i + 1] ? LEVELS[i + 1][0] : cur + 1000;
@@ -429,23 +511,26 @@ function levelOf(xp) {
 }
 function addXP(n, why) {
   if (!n) return;
-  const before = levelOf(S.xp).lv;
+  const before = levelOf(effXP()).lv;
   S.xp = Math.max(0, S.xp + n);
-  toast(`+${n} XP ${why ? '・' + why : ''}`, 'xp');
-  const L = levelOf(S.xp);
+  let extra = '';
+  if (n > 0 && S.decay) { const r = Math.min(S.decay, n); S.decay -= r; extra = `（從暗影奪回 ${r}）`; }
+  if (n > 0 && S.demon) { S.demon = Math.max(0, S.demon - n); if (!S.demon) setTimeout(() => modal(`<div class="cardart">⚔️</div><h2>驅散暗影！</h2><p>篝火重新點燃，你掙脫了黑暗。</p><button class="btn" onclick="closeModal()">繼續修練</button>`), 600); }
+  toast(`+${n} 經驗 ${why ? '・' + why : ''}${extra}`, 'xp');
+  const L = levelOf(effXP());
   if (L.lv > before) {
-    modal(`<div class="cardart">🎉</div><h2>升級！Lv${L.lv}</h2><p>你獲得新稱號：<b>${L.title}</b></p><button class="btn" onclick="closeModal()">繼續修練</button>`);
+    modal(`<div class="cardart">🎉</div><h2>晉升！</h2><p>你獲得新稱號：<b>${L.title}</b></p><p class="muted" style="font-size:14px">${LEVELS[L.lv - 1][2]}</p><button class="btn" onclick="closeModal()">繼續修練</button>`);
     Rec.send('levelup', { level: L.lv, xp: S.xp });
   }
   save(); renderHUD(); checkBadges();
 }
 function renderHUD() {
-  const L = levelOf(S.xp);
+  const L = levelOf(effXP());
   $('#pName').textContent = S.nick || S.name;
   $('#pLv').textContent = 'Lv' + L.lv;
-  $('#pTitle').textContent = L.title;
+  $('#pTitle').textContent = (S.demon ? '💀黑暗・' : '') + L.title;
   $('#pXp').style.width = (L.frac * 100) + '%';
-  $('#pXpTxt').textContent = `${S.xp} / ${L.nxt} XP`;
+  $('#pXpTxt').textContent = `經驗 ${effXP()} / ${L.nxt}${S.decay ? '（被暗影奪走 ' + S.decay + '）' : ''}`;
 }
 
 /* ---------------- UI helpers ---------------- */
@@ -557,11 +642,11 @@ document.addEventListener('visibilitychange', () => {
 
 /* ---------------- views: map ---------------- */
 function viewMap(V) {
-  const L = levelOf(S.xp), ck = S.course || 'pv', C = COURSES[ck];
+  const L = levelOf(effXP()), ck = S.course || 'pv', C = COURSES[ck];
   if (!getPlace(ck) && !placeSkipped(ck) && courseCH(ck).length) return go('placement', ck);
   const P = getPlace(ck), T = P ? TIERS[P.tier] : null;
   V.innerHTML = `<div class="welcome"><h2>歡迎回來，${esc(S.nick || S.name)}！</h2>
-    <div>目前稱號：<b style="color:#fbbf24">${L.title}</b>　🔥 連續修練 ${streak()} 天　🃏 科學家卡 ${(S.cards||[]).length}/${CARDS.length}</div></div>
+    <div>稱號：<b style="color:#fbbf24;cursor:pointer;text-decoration:underline dotted" onclick="showLadder()" title="查看冒險者之路">${S.demon ? '💀黑暗・' : ''}${L.title}</b>　指環：<b style="color:#c4b5fd;cursor:pointer" onclick="showLadder()">${spiritRoot().name}</b> <span style="font-size:12px;cursor:pointer" onclick="showLadder()">（查看冒險者之路）</span>　🔥 連續修練 ${streak()} 天　🃏 科學家卡 ${(S.cards||[]).length}/${CARDS.length}</div></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 4px">${CKEYS.filter(k => courseCH(k).length).map(k => `<button class="btn ${k === ck ? '' : 'ghost'}" style="${k === ck ? '' : 'color:#e2e8f0;border-color:#475569'}" onclick="S.course='${k}';save(false);go('map')">${COURSES[k].icon} ${COURSES[k].no}：${COURSES[k].name}</button>`).join('')}</div>
     <div class="card" style="margin-top:10px;background:linear-gradient(135deg,#fff7e6,#fffdf8)"><div class="muted" style="font-size:13px;font-weight:700">📚 ${C.no}${T ? '　・　🎓 你的入門鑑定：' + T.e + ' ' + T.n : ''}</div>
       <h3 style="margin:2px 0">${C.icon} ${C.name}</h3>
@@ -571,8 +656,8 @@ function viewMap(V) {
       <div style="font-size:15px">課程之外，到上方「研究前線」分頁看最新文獻怎麼用到這些基礎觀念，並參加 Journal Club 會前閱讀任務。</div></div>
     <div style="text-align:center;color:#64748b;font-size:12px;margin:18px 0">FOEM 修練場 · 明志科大材料系 黃裕清老師實驗室 · 實驗室內部教學資源，請勿外流</div>`;
   const Z = $('#zones', V);
-  ['basic', 'adv', 'app'].forEach(pk => {
-    const PP = C.parts[pk], list = courseCH(ck).filter(c => c.part === pk);
+  (C.zones ? C.zones.map(z => z.key) : ['basic', 'adv', 'app']).forEach(pk => {
+    const PP = C.zones ? C.zones.find(z => z.key === pk) : C.parts[pk], list = courseCH(ck).filter(c => C.zones ? c.zone === pk : c.part === pk);
     if (!list.length) return;
     const doneN = list.filter(c => c.boss && chapterDone(c)).length, bossN = list.filter(c => c.boss).length;
     const sec = document.createElement('div');
@@ -614,6 +699,7 @@ function viewChapter(V, id) {
     <div class="path" id="path"></div></div>
   ${c.topics && c.topics.length ? `<div class="card" style="border:2px solid #10b981"><b>📡 本專題的研究前線</b>：${c.topics.map(t => `<button class="btn small ghost" style="margin:2px" onclick="go('frontier','T:${t}')">${TOPICS[t] || t}（${FRONT.cards.filter(x => x.topics.includes(t)).length} 張卡）</button>`).join('')}
     <div class="muted" style="font-size:13px;margin-top:4px">讀完本關的基礎，再到研究前線走完「專題路線」：每張文獻卡都標出用到這一關的哪些觀念。</div></div>` : ''}
+  ${c.prereq && c.prereq.length ? `<div class="card" style="border:2px solid #6366f1"><b>🔗 先修基礎關卡</b>：這個研究專題用到下列基礎課的觀念，卡住時可隨時回去複習。<div style="margin-top:6px">${c.prereq.map(([pid, why]) => { const pc = CH.find(x => x.id === pid); return pc ? `<button class="btn small ghost" style="margin:2px;text-align:left" onclick="go('chapter',${pid})">${pc.icon || ''} ${esc(pc.label || '')} ${esc(pc.title)}${why ? `<br><span class="muted" style="font-size:12px">↳ ${why}</span>` : ''}</button>` : ''; }).join('')}</div></div>` : ''}
   <div id="concepts"></div><div id="probs"></div><div id="bossArea"></div>`;
   const P = $('#path', V);
   c.concepts.forEach((k, i) => {
@@ -641,6 +727,7 @@ function renderConcept(c, k, i) {
   const fm = (k.formulas || []).map(f => formulaCard(f)).join('');
   det.innerHTML = `<summary><span class="pill ${S.concept[k.id] ? 'green' : 'gray'}">${S.concept[k.id] ? '已通過' : '節點 ' + k.id}</span> ${esc(k.title)}</summary>
     ${sec('plain', '🍼 白話說明（零基礎也看得懂）', k.plain)}
+    ${k.link && k.link.length ? `<div class="muted" style="font-size:13px;margin:4px 0 8px">🔗 回到基礎：${k.link.map(pid => { const pc = CH.find(x => x.id === pid); return pc ? `<button class="btn small ghost" style="margin:2px" onclick="go('chapter',${pid})">${pc.icon || ''} ${esc(pc.title)}</button>` : ''; }).join('')}</div>` : ''}
     ${k.figs ? `<div class="sec figs"><div class="h">🖼️ 圖解</div>${k.figs.map((f, j) => `<figure class="fig" data-j="${j}">${f.svg ? f.svg : `<canvas class="fplot" style="height:${f.h || 240}px"></canvas>`}${f.cap ? `<figcaption>${f.cap}</figcaption>` : ''}</figure>`).join('')}</div>` : ''}
     ${sec('pre', '🔑 先備知識：讀這個觀念前要知道的事', pre)}
     ${sec('deep', '🔬 專業說明（定義、物理圖像、假設與適用範圍）', k.deep)}
@@ -989,8 +1076,8 @@ async function viewHall(V) {
   if (!CONFIG.API) { $('#lb', V).textContent = '老師尚未設定紀錄伺服器，排行榜暫不開放。'; return; }
   const r = await apiGet({ action: 'board' });
   if (!r || !r.rows) { $('#lb', V).textContent = '暫時讀不到排行榜（可能網路不穩），稍後再試。'; return; }
-  $('#lb', V).innerHTML = `<table class="board"><tr><th>#</th><th>修練者</th><th>等級</th><th>XP</th><th>魔王</th></tr>${r.rows.map((x, i) =>
-    `<tr class="${x.sid === S.sid ? 'me' : ''}"><td>${i < 3 ? ['🥇', '🥈', '🥉'][i] : i + 1}</td><td>${esc(x.nick || '匿名修練者')}</td><td>Lv${x.level} ${esc(levelOf(x.xp).title)}</td><td>${x.xp}</td><td>${x.boss || 0}</td></tr>`).join('')}</table>`;
+  $('#lb', V).innerHTML = `<table class="board"><tr><th>#</th><th>修練者</th><th>稱號</th><th>總經驗</th><th>魔王</th></tr>${r.rows.map((x, i) =>
+    `<tr class="${x.sid === S.sid ? 'me' : ''}"><td>${i < 3 ? ['🥇', '🥈', '🥉'][i] : i + 1}</td><td>${esc(x.nick || '匿名修練者')}</td><td>${esc((LEVELS[(x.level || 1) - 1] || LEVELS[0])[1])}</td><td>${x.xp}</td><td>${x.boss || 0}</td></tr>`).join('')}</table>`;
 }
 function showCard(id) { const k = CARDS.find(x => x.id === id); modal(`<div class="cardart">${k.e}</div><h2 style="margin:4px 0">${k.n}</h2><div class="muted">${k.y || ''}</div><p style="text-align:left">${k.d}</p><button class="btn" onclick="closeModal()">關閉</button>`); }
 
@@ -1218,7 +1305,7 @@ function viewFrontier(V, openId) {
 /* ---------------- ⚔️ 競技場：每日挑戰、對戰、週聯賽 ---------------- */
 function hashStr(t) { let h = 2166136261; for (const ch of String(t)) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
 function rng32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
-const ARENA_SCOPES = { pv: '☀️ 課程一', ec: '⚗️ 課程二', oe: '🌈 課程三', pm: '🔗 課程四', all: '🌐 全部課程', basic: '🟦 只考基本知識' };
+const ARENA_SCOPES = { pv: '☀️ 課程一', ec: '⚗️ 課程二', oe: '🌈 課程三', oc: '🧪 課程四', pm: '🔗 課程五', all: '🌐 全部課程', basic: '🟦 只考基本知識' };
 function arenaPool(scope) {
   const out = [];
   CH.forEach(c => { if (COURSES[scope]) { if (c.course !== scope) return; } else if (scope === 'basic' && c.part !== 'basic') return;
@@ -1327,7 +1414,7 @@ async function viewArena(V) {
       modal(`<div class="cardart">${o === 'win' ? '🏆' : o === 'draw' ? '🤝' : '💪'}</div><h3>${o === 'win' ? '勝利！' : o === 'draw' ? '平手！' : '惜敗！'}</h3><p>${esc(d.c_nick)} ${d.c_score} : ${r.score} 你</p><button class="btn" onclick="closeModal();go('arena')">回競技場</button>`);
     });
   });
-  $('#wlb', V).innerHTML = (A.week || []).length ? `<table class="board"><tr><th>#</th><th>修練者</th><th>本週 XP</th></tr>${A.week.map((x, i) => `<tr class="${x.me ? 'me' : ''}"><td>${medal(i)}</td><td>${esc(x.nick)}</td><td>+${x.gain}</td></tr>`).join('')}</table>` : '本週還沒有紀錄。';
+  $('#wlb', V).innerHTML = (A.week || []).length ? `<table class="board"><tr><th>#</th><th>修練者</th><th>本週經驗</th></tr>${A.week.map((x, i) => `<tr class="${x.me ? 'me' : ''}"><td>${medal(i)}</td><td>${esc(x.nick)}</td><td>+${x.gain}</td></tr>`).join('')}</table>` : '本週還沒有紀錄。';
   $('#rlb', V).innerHTML = (A.rank || []).length ? `<table class="board"><tr><th>#</th><th>修練者</th><th>勝</th><th>平</th><th>敗</th></tr>${A.rank.map((x, i) => `<tr class="${x.me ? 'me' : ''}"><td>${medal(i)}</td><td>${esc(x.nick)}</td><td>${x.w}</td><td>${x.d}</td><td>${x.l}</td></tr>`).join('')}</table>` : '還沒有完成的對戰。';
 }
 function dailyStreak() { const D = S.daily || {}; let n = 0; const d = new Date(); if (!D[nowDay()]) d.setDate(d.getDate() - 1);
@@ -1384,12 +1471,12 @@ function aiGlobal() {
   modal(`<div style="text-align:left"><h3 style="margin:0">🤖 問 AI</h3><div class="muted" style="font-size:13px">${c ? '目前位置：' + esc(c.label + '「' + c.title + '」' + (k ? ' 觀念 ' + k.id : '')) + '（會一併附上這部分的課程內容）' : '可以問任何課程、實驗或文獻閱讀相關的問題。'}</div>
     <textarea id="aigq" style="width:100%;min-height:80px;border:1.5px solid var(--line);border-radius:10px;padding:8px;margin-top:6px" placeholder="輸入你的問題…"></textarea>
     <button class="btn" id="aigo">整理並複製問題</button> <button class="btn ghost" onclick="closeModal()">關閉</button><div id="aigout" style="margin-top:10px"></div></div>`);
-  $('#aigo').onclick = () => aiGo($('#aigq').value, c ? `${COURSES[c.course].no} ${c.label}「${c.title}」${k ? ' 觀念 ' + k.id + '「' + k.title + '」' : ''}` : 'FOEM 實驗室的課程（半導體、太陽電池、電化學）', k ? k.id : '', aiContextFor(c, k), $('#aigout'));
+  $('#aigo').onclick = () => aiGo($('#aigq').value, c ? `${COURSES[c.course].no} ${c.label}「${c.title}」${k ? ' 觀念 ' + k.id + '「' + k.title + '」' : ''}` : 'FOEM 實驗室的課程（半導體與太陽電池、電化學、有機光電、有機化學、高分子科學）', k ? k.id : '', aiContextFor(c, k), $('#aigout'));
 }
 
 /* ---------------- me ---------------- */
 function viewMe(V) {
-  const L = levelOf(S.xp);
+  const L = levelOf(effXP());
   const tt = Object.values(S.time).reduce((a, b) => a + b, 0);
   V.innerHTML = `<div class="card"><h2 style="margin:0">👤 ${esc(S.nick || '')}　<span class="muted" style="font-size:15px">${esc(S.name)}（${esc(S.sid)}）</span></h2>
     <div class="muted" style="font-size:13px">真實姓名只有老師看得到；排行榜上顯示暱稱。${CKEYS.filter(k => getPlace(k)).map(k => '　' + COURSES[k].no + '鑑定：' + TIERS[getPlace(k).tier].e + ' ' + TIERS[getPlace(k).tier].n + '（' + getPlace(k).score + '/' + getPlace(k).total + '）').join('')}</div>
@@ -1466,7 +1553,7 @@ function drawFigs(root, figs) {
   requestAnimationFrame(() => (figs || []).forEach((f, j) => { if (!f.plot) return; const cv = $(`figure[data-j="${j}"] canvas`, root); if (cv && cv.clientWidth) plot(cv, buildPlot(f.plot)); }));
 }
 function figsHTML(figs) { return (figs || []).map((f, j) => `<figure class="fig" data-j="${j}">${f.svg ? f.svg : `<canvas class="fplot" style="height:${f.h || 240}px"></canvas>`}${f.cap ? `<figcaption>${f.cap}</figcaption>` : ''}</figure>`).join(''); }
-const INSTR_GROUPS = [['☀️ 元件與光電', ['JV', 'EQE', 'PL', 'UVVIS', 'SCLC']], ['🔬 結構與表面', ['XRD', 'SEM', 'XPS', 'RAMAN', 'XAS']], ['⚗️ 電化學', ['CV', 'EIS', 'RDE']], ['🧪 產物與組成定量', ['GC', 'NMR', 'INDO', 'ICP']], ['🌈 有機光電', ['GIWAXS', 'AFM', 'NOISE', 'TPV']], ['🔗 高分子鑑定', ['GPC', 'DSC', 'TGA', 'FTIR']]];
+const INSTR_GROUPS = [['☀️ 元件與光電', ['JV', 'EQE', 'PL', 'UVVIS', 'SCLC']], ['🔬 結構與表面', ['XRD', 'SEM', 'XPS', 'RAMAN', 'XAS']], ['⚗️ 電化學', ['CV', 'EIS', 'RDE']], ['🧪 產物與組成定量', ['GC', 'NMR', 'INDO', 'ICP']], ['🌈 有機光電', ['GIWAXS', 'AFM', 'NOISE', 'TPV']], ['🔗 高分子鑑定', ['GPC', 'DSC', 'TGA', 'FTIR']], ['🧬 生醫材料', ['DLS', 'RHEO', 'SWELL', 'WCA', 'QCMD', 'HPLC', 'MTT', 'FLUO']]];
 function instrGroups() {
   const used = new Set(), G = INSTR_GROUPS.map(([g, ids]) => [g, ids.map(id => XC.instr.find(I => I.id === id)).filter(Boolean)]);
   G.forEach(([, L]) => L.forEach(I => used.add(I.id)));
@@ -2065,11 +2152,13 @@ async function doLogin(sid, name, nick, silent) {
   $('#gate').classList.add('hidden'); $('#app').classList.remove('hidden'); document.body.classList.add('in');
   Rec.init();
   const today = nowDay(), newDay = !S.days.includes(today);
+  const DEC = newDay ? applyDecay(S.days[S.days.length - 1]) : null;
   if (newDay) S.days.push(today);
-  Rec.send('login', { level: levelOf(S.xp).lv, xp: S.xp, ua: navigator.userAgent.slice(0, 80) });
+  Rec.send('login', { level: levelOf(effXP()).lv, xp: S.xp, ua: navigator.userAgent.slice(0, 80) });
   renderHUD();
   if (CONFIG.API) { const changed = await pullProgress(false); if (changed) toast('已從雲端載入你的進度'); }
   if (newDay) addXP(5, '今日簽到'); else save(false);
+  if (DEC) setTimeout(() => modal(`<div class="cardart">${DEC.st[0]}</div><h2>${DEC.st[1]}</h2><p>${DEC.st[2]}</p><p>被暗影奪走 <b>${DEC.lost}</b> 經驗，目前稱號：<b>${levelOf(effXP()).title}</b></p><p class="muted" style="font-size:14px">重新點燃篝火吧：接下來冒險獲得的經驗會<b>加倍奪回</b>，直到全部拿回來。${S.demon ? '再獲得 100 經驗即可驅散心中暗影。' : ''}</p><button class="btn" onclick="closeModal()">重新出發</button>`), 900);
   loadFrontier();
   checkBadges();
   const h = location.hash;

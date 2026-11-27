@@ -267,7 +267,7 @@ table.data th{background:#f8f5ec}
 <div id="modal" class="hidden"><div class="box" id="modalBox"></div></div>
 
 <script src="config.js"></script>
-<script src="content.enc.js?v=ff46b00c62"></script>
+<script src="content.enc.js?v=d923163298"></script>
 <script>
 /* 設定在 config.js（老師可直接在 GitHub 網頁上編輯）；加密內容在 content.enc.js */
 const CONFIG = Object.assign({ API: '', ROSTER: false, FREE_ROAM: false, BOSS_REQ: 0.6 }, window.PVQ_CONFIG || {});
@@ -312,32 +312,56 @@ function loadContent(src) {
 /* ---------------- 課程與分區 ---------------- */
 const COURSES = {
   pv: { no: '課程一', name: '半導體元件與太陽電池', icon: '☀️',
-    src: '主要教材：J. Nelson《The Physics of Solar Cells》（中譯本），並整合 P. Würfel《Physics of Solar Cells》、S. Fonash《Solar Cell Device Physics》(2nd ed.)、J. Bisquert《The Physics of Solar Cells: Perovskites, Organics, and Photovoltaic Fundamentals》、A. Kitai《Principles of Solar Cells, LEDs and Diodes》、C. J. Chen《Physics of Solar Energy》與《The Future of Semiconductor Oxides in Next-Generation Solar Cells》。',
-    parts: { basic: { icon: '🟦', name: '基本知識：半導體元件基礎', desc: '能帶、載子、產生與複合、接面、p-n 結二極體——所有半導體元件共通的地基。' },
-             adv: { icon: '🟧', name: '進階知識：太陽電池', desc: '把半導體基礎用在太陽電池：特性與效率極限、各種電池技術與光學管理。' },
-             app: { icon: '🟩', name: '研究專題：鈣鈦礦與新世代電池', desc: '和實驗室研究直接相關的專題。各專題之間互不鎖定，並連結「研究前線」的最新文獻持續延伸。' } },
-    order: [[0, 'basic'], [3, 'basic'], [4, 'basic'], [5, 'basic'], [6, 'basic'],
-      [1, 'adv'], [2, 'adv'], [7, 'adv'], [8, 'adv'], [9, 'adv'], [10, 'adv'], [11, 'adv'], [13, 'app'], [12, 'app']],
-    topics: { 13: ['PSC', 'PSCSTAB'], 12: ['TANDEM'] },
-    orig: c => (c.id === 0 || c.bonus) ? '' : 'Nelson 原書第 ' + c.id + ' 章',
+    src: '主要教材：J. Nelson《The Physics of Solar Cells》（中譯本），並整合 P. Würfel《Physics of Solar Cells》、S. Fonash《Solar Cell Device Physics》(2nd ed.)、J. Bisquert《The Physics of Solar Cells: Perovskites, Organics, and Photovoltaic Fundamentals》、A. Kitai《Principles of Solar Cells, LEDs and Diodes》、C. J. Chen《Physics of Solar Energy》與《The Future of Semiconductor Oxides in Next-Generation Solar Cells》，以及 Kittel《固態物理導論》、Sze《Physics of Semiconductor Devices》、Schroder《Semiconductor Material and Device Characterization》與鈣鈦礦成膜、界面、穩定性、疊層、模組、軟性與室內光電的回顧論文。基本知識區完整涵蓋半導體物理與光電元件，研究專題聚焦鈣鈦礦並連結課程二的太陽能驅動電化學。',
+    parts: { basic: { icon: '🟦', name: '基本知識：半導體元件基礎', desc: '' }, adv: { icon: '🟧', name: '進階知識：太陽電池', desc: '' }, app: { icon: '🟩', name: '研究專題', desc: '' } },
+    zones: [
+      { key: 'A', icon: '🟦', lab: '半導體', name: '基本知識 I：半導體物理', desc: '晶體與能帶、載子、產生與複合、缺陷物理、半導體結與 p-n 結——所有半導體元件共通的地基。' },
+      { key: 'B', icon: '🟦', lab: '元件', name: '基本知識 II：光電元件與模擬', desc: '光偵測器與 LED、MOS 與薄膜電晶體、漂移–擴散數值模擬。' },
+      { key: 'C', icon: '🟧', lab: '原理', name: '進階 I：太陽電池原理與損失分析', desc: '基本特性、光子與效率極限、光學管理、損失分析總整理與高效率新概念。' },
+      { key: 'D', icon: '🟧', lab: '技術', name: '進階 II：太陽電池技術', desc: '晶矽、III-V、非晶矽、CIGS／CdTe 與激子型電池（含鈣鈦礦入門）。' },
+      { key: 'app', icon: '🟩', lab: '專題', name: '研究專題：鈣鈦礦太陽電池與新應用', desc: '成膜化學、蒸鍍、界面鈍化、元件物理、穩定性、疊層、模組、軟性、室內光電與實驗室路線圖。各專題之間互不鎖定，並連結「研究前線」的最新文獻持續延伸。' } ],
+    order: [[0,'basic','A'],[14,'basic','A'],[3,'basic','A'],[4,'basic','A'],[15,'basic','A'],[5,'basic','A'],[6,'basic','A'],
+      [16,'basic','B'],[17,'basic','B'],[18,'basic','B'],
+      [1,'adv','C'],[2,'adv','C'],[11,'adv','C'],[19,'adv','C'],[12,'adv','C'],
+      [7,'adv','D'],[8,'adv','D'],[9,'adv','D'],[10,'adv','D'],[13,'adv','D'],
+      [20,'app','app'],[21,'app','app'],[22,'app','app'],[23,'app','app'],[24,'app','app'],[25,'app','app'],[26,'app','app'],[27,'app','app'],[28,'app','app'],[29,'app','app']],
+    topics: { 13: ['PSC', 'PSCSTAB'], 12: ['TANDEM'], 20: ['PSC'], 21: ['PSC'], 22: ['PSC'], 23: ['PSC'], 24: ['PSCSTAB'], 25: ['TANDEM'], 26: ['PSC'], 27: ['PSC'], 29: ['SOLAR', 'HER', 'OER', 'NH3'] },
+    orig: c => (c.id === 0 || c.bonus) ? '' : (c.id <= 13 ? 'Nelson 原書第 ' + c.id + ' 章' : (c.ref || '')),
     secs: { math: '數理基礎', semi: '半導體元件', pv: '太陽電池' } },
   ec: { no: '課程二', name: '電化學', icon: '⚗️',
-    src: '主要教材：A. J. Bard & L. R. Faulkner《Electrochemical Methods》(2nd ed.)、T. ul Haq & Y. Haik《Electrochemical Water Splitting》(2024)，並整合燃料電池電催化、電化學合成氨回顧、水電解產業化回顧論文，以及 C. J. Chen《Physics of Solar Energy》的太陽能電化學章節。',
-    parts: { basic: { icon: '🟦', name: '基本知識：電化學基礎', desc: '電化學池、熱力學、電極動力學、質傳、電雙層與量測技術——讀懂任何電化學論文的地基。' },
-             adv: { icon: '🟧', name: '進階知識：電催化原理與評比', desc: '吸附、火山圖與 d 能帶，以及如何正確量測、評比觸媒——讀懂並寫出經得起審稿的數據。' },
-             app: { icon: '🟩', name: '研究專題：產氫、產氧、產氨與太陽能驅動', desc: '依實驗室研究主題分區，各專題之間互不鎖定，並連結「研究前線」的最新文獻持續延伸。' } },
-    order: [[100, 'basic'], [101, 'basic'], [102, 'basic'], [103, 'basic'], [104, 'basic'], [105, 'basic'], [106, 'basic'],
-      [107, 'adv'], [110, 'adv'], [108, 'app'], [109, 'app'], [111, 'app'], [112, 'app'], [113, 'app']],
-    topics: { 108: ['HER'], 109: ['OER'], 111: ['OWS'], 112: ['NH3'], 113: ['SOLAR', 'CO2'] },
+    src: '主要教材：A. J. Bard & L. R. Faulkner《Electrochemical Methods》(2nd ed.) 全書，以及 T. ul Haq & Y. Haik《Electrochemical Water Splitting》(2024)、O’Hayre《Fuel Cell Fundamentals》、Huggins《Advanced Batteries》、腐蝕與電沉積專書，並整合燃料電池電催化、CO₂ 還原、電化學合成氨、水電解產業化回顧論文，以及 C. J. Chen《Physics of Solar Energy》的太陽能電化學章節。基本知識區依教科書完整涵蓋（特用性主題精簡），研究專題連結實驗室的太陽能驅動產氫、產氧、產氨。',
+    parts: { basic: { icon: '🟦', name: '基本知識', desc: '' }, adv: { icon: '🟧', name: '電催化', desc: '' }, app: { icon: '🟩', name: '研究專題', desc: '' } },
+    zones: [
+      { key: 'A', icon: '🟦', lab: '基礎', name: '基本知識 I：電化學基礎與熱力學', desc: '電解質溶液、電化學池與參考電極、Nernst 與 Pourbaix、電雙層。' },
+      { key: 'B', icon: '🟦', lab: '動力學', name: '基本知識 II：電極動力學與質傳', desc: 'Butler–Volmer、Marcus 理論、多步驟機制與耦合化學反應、擴散與 RDE。' },
+      { key: 'C', icon: '🟦', lab: '技術', name: '基本知識 III：量測技術', desc: '電位階躍、循環伏安理論、脈衝伏安與感測、EIS 與 iR 補償、原位技術。' },
+      { key: 'D', icon: '🟦', lab: '界面', name: '基本知識 IV：材料與界面', desc: '半導體電化學與光電極、腐蝕與鈍化、電沉積與電合成。' },
+      { key: 'E', icon: '🟧', lab: '電催化', name: '進階：電催化與評比', desc: '吸附與火山圖、HER、OER、ORR 與燃料電池、CO₂ 還原、合成氨，以及正確的評比方法。' },
+      { key: 'app', icon: '🟩', lab: '專題', name: '研究專題：太陽能驅動產氫、產氧、產氨與儲能', desc: '電池、電解槽工業化、PV-EC 與實驗室路線圖。各專題之間互不鎖定，並連結「研究前線」的最新文獻持續延伸。' } ],
+    order: [[100,'basic','A'],[114,'basic','A'],[101,'basic','A'],[102,'basic','A'],[105,'basic','A'],
+      [103,'basic','B'],[115,'basic','B'],[116,'basic','B'],[104,'basic','B'],
+      [117,'basic','C'],[118,'basic','C'],[119,'basic','C'],[106,'basic','C'],[120,'basic','C'],
+      [121,'basic','D'],[122,'basic','D'],[123,'basic','D'],
+      [107,'adv','E'],[108,'adv','E'],[109,'adv','E'],[124,'adv','E'],[125,'adv','E'],[112,'adv','E'],[110,'adv','E'],
+      [126,'app','app'],[111,'app','app'],[113,'app','app'],[127,'app','app']],
+    topics: { 108: ['HER'], 109: ['OER'], 111: ['OWS'], 112: ['NH3'], 113: ['SOLAR', 'CO2'], 125: ['CO2'], 127: ['HER', 'OER', 'NH3', 'SOLAR'] },
     orig: c => c.ref || '',
     secs: { chem: '化學與數理', ec: '電化學基礎', cat: '電催化與應用' } },
   oe: { no: '課程三', name: '有機光電：OPV 與 OPD', icon: '🌈',
     src: '主要教材：Rand & Richter (eds.)《Organic Solar Cells: Fundamentals, Devices, and Upscaling》、Q. Qiao (ed.)《Organic Solar Cells: Materials, Devices, Interfaces, and Modeling》、P. Kumar《Organic Solar Cells: Device Physics, Processing, Degradation, and Prevention》、D. Yan et al.《Introduction to Organic Semiconductor Heterojunctions》、S. Tiwari (ed.)《Printable Solar Cells》，並整合有機光偵測器（OPD）回顧與研究論文，以及本實驗室的製程與 X 光散射研究。；另參考 J. Bisquert《The Physics of Solar Cells》（有機與 CT 態章節）與 A. Kitai《Principles of Solar Cells, LEDs and Diodes》Ch6',
-    parts: { basic: { icon: '🟦', name: '基本知識：有機半導體', desc: '共軛分子、激子、電荷傳輸與施體／受體界面——有機光電元件共通的地基。' },
-             adv: { icon: '🟧', name: '進階知識：元件物理與製程', desc: '形貌、OPV 與 OPD 的元件物理，以及從旋塗到卷對卷的印刷放大。' },
-             app: { icon: '🟩', name: '研究專題：穩定性與應用', desc: '依實驗室研究主題分區（穩定性、OPD 應用、OPV 應用），各專題互不鎖定，並連結「研究前線」的最新文獻持續延伸。' } },
-    order: [[200, 'basic'], [201, 'basic'], [202, 'basic'], [203, 'basic'], [204, 'adv'], [205, 'adv'], [206, 'adv'], [207, 'adv'], [208, 'app'], [209, 'app'], [210, 'app']],
-    topics: { 208: ['OSTAB'], 209: ['OPD'], 210: ['OPV'] },
+    parts: { basic: { icon: '🟦', name: '基本知識：有機半導體', desc: '' }, adv: { icon: '🟧', name: '進階知識：元件物理與製程', desc: '' }, app: { icon: '🟩', name: '研究專題', desc: '' } },
+    zones: [
+      { key: 'A', icon: '🟦', lab: '分子', name: '基本知識 I：分子與光物理', desc: '共軛與能階、分子軌域與能階量測、激子、聚集與固態堆疊。' },
+      { key: 'B', icon: '🟦', lab: '電荷', name: '基本知識 II：電荷、界面與分子設計', desc: '電荷傳輸、摻雜與導電高分子、施體／受體界面、D–A 共聚物與非富勒烯受體設計。' },
+      { key: 'C', icon: '🟧', lab: '元件', name: '進階 I：元件物理', desc: '形貌與 X 光散射、OPV、OPD、有機電晶體（OFET／OECT）、OLED 與 TADF。' },
+      { key: 'D', icon: '🟧', lab: '製程', name: '進階 II：製程與穩定性', desc: '印刷製程、模組放大與穩定性。' },
+      { key: 'app', icon: '🟩', lab: '專題', name: '研究專題：OPV、OPD 與有機生物電子', desc: '應用、非富勒烯受體前沿、三元與層層製程、有機生物電子與實驗室路線圖。各專題互不鎖定，並連結「研究前線」持續延伸。' } ],
+    order: [[200,'basic','A'],[211,'basic','A'],[201,'basic','A'],[212,'basic','A'],
+      [202,'basic','B'],[213,'basic','B'],[203,'basic','B'],[214,'basic','B'],
+      [204,'adv','C'],[205,'adv','C'],[206,'adv','C'],[215,'adv','C'],[216,'adv','C'],
+      [207,'adv','D'],[208,'adv','D'],
+      [209,'app','app'],[210,'app','app'],[217,'app','app'],[218,'app','app'],[219,'app','app'],[220,'app','app']],
+    topics: { 208: ['OSTAB'], 209: ['OPD'], 210: ['OPV'], 217: ['OPV'], 218: ['OPV'], 219: ['OPD'], 220: ['OPV', 'OPD'] },
     orig: c => c.ref || '',
     secs: { mol: '有機半導體基礎', dev: '元件物理', proc: '製程與應用' } },
   oc: { no: '課程四', name: '有機化學', icon: '🧪',
@@ -602,6 +626,7 @@ function unlocked(c) {
   if (tier >= 2) return true;                          // 鑑定為進階：全部開放
   if (tier >= 1 && c.part === 'basic') return true;    // 鑑定為基礎：基本知識區全開
   if (S.skip && S.skip[c.id]) return true;
+  if ((S.boss && S.boss[c.id]) || c.concepts.some(k => S.concept[k.id])) return true;   // 已有進度的關卡不因課程重排而上鎖
   if (c.part === 'app') { const f = L.findIndex(x => x.part === 'app'); return f <= 0 || chapterDone(L[f - 1]); }   // 專題彼此不鎖定
   return !!chapterDone(L[i - 1]);
 }
@@ -695,7 +720,7 @@ function viewChapter(V, id) {
     <h2>${c.icon || ''} ${esc(c.title)}</h2><div class="src">${esc(c.en || '')}</div>
     ${c.story ? `<p style="margin:10px 0 4px">${c.story}</p>` : ''}
     ${c.goals ? `<div style="font-weight:700;margin-top:8px">🎯 本章學完你應該能夠：</div><ul class="goals">${c.goals.map(g => `<li>${g}</li>`).join('')}</ul>` : ''}
-    <div class="src" style="margin-top:8px">📚 對應教材：${c.src || ''}${c.orig ? '<br>📘 本關＝' + c.orig + (c.course === 'pv' ? '（文中提到「第 X 章」時，指的是 Nelson 原書章節）' : '') : ''}</div>
+    <div class="src" style="margin-top:8px">📚 對應教材：${c.src || ''}${c.orig ? '<br>📘 本關＝' + c.orig + (c.course === 'pv' && c.id <= 13 ? '（文中提到「第 X 章」時，指的是 Nelson 原書章節）' : '') : ''}</div>
     <div class="path" id="path"></div></div>
   ${c.topics && c.topics.length ? `<div class="card" style="border:2px solid #10b981"><b>📡 本專題的研究前線</b>：${c.topics.map(t => `<button class="btn small ghost" style="margin:2px" onclick="go('frontier','T:${t}')">${TOPICS[t] || t}（${FRONT.cards.filter(x => x.topics.includes(t)).length} 張卡）</button>`).join('')}
     <div class="muted" style="font-size:13px;margin-top:4px">讀完本關的基礎，再到研究前線走完「專題路線」：每張文獻卡都標出用到這一關的哪些觀念。</div></div>` : ''}
@@ -1087,8 +1112,8 @@ const TIERS = [
   { e: '🔷', n: '基礎修練者', d: '你的基礎概念不錯：「基本知識」區全部開放，可挑自己弱的關卡加強；打完基本區魔王後進入「進階知識」。' },
   { e: '🔶', n: '進階修練者', d: '你已經有這門課的底子：所有關卡全部開放，可以直接挑戰進階知識。仍建議用基本區的魔王戰檢查自己。' }
 ];
-function placementTier(sec, keys) {
-  const v = keys.map(k => sec[k] || 0), tot = v[0] + v[1] + v[2];
+function placementTier(sec, keys, per = 4) {
+  const r = per / 4, v = keys.map(k => (sec[k] || 0) / r), tot = v[0] + v[1] + v[2];   // 依每區題數換算成 4 題制
   if (tot >= 9 && v[1] >= 3 && v[2] >= 3) return 2;
   if (tot >= 6 && v[1] >= 3) return 1;
   return 0;
@@ -1124,7 +1149,7 @@ function viewPlacement(V, ck) {
   const finish = () => {
     const sec = {}, cnt = {}; keys.forEach(k => { sec[k] = 0; cnt[k] = 0; });
     qs.forEach((q, k) => { cnt[q.sec]++; if (ans[k] === q.a) sec[q.sec]++; });
-    const score = keys.reduce((a, k) => a + sec[k], 0), newTier = placementTier(sec, keys);
+    const score = keys.reduce((a, k) => a + sec[k], 0), newTier = placementTier(sec, keys, qs.length / keys.length);
     const prev = getPlace(ck), tier = Math.max(newTier, prev ? prev.tier : 0);
     setPlace(ck, { tier, score, total: qs.length, sec, t: Date.now() }); save();
     const detail = keys.map(k => `${secName[k]} ${sec[k]}/${cnt[k]}`).join('・');

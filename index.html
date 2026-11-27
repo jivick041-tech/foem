@@ -267,7 +267,7 @@ table.data th{background:#f8f5ec}
 <div id="modal" class="hidden"><div class="box" id="modalBox"></div></div>
 
 <script src="config.js"></script>
-<script src="content.enc.js?v=d923163298"></script>
+<script src="content.enc.js?v=09b81efe5a"></script>
 <script>
 /* 設定在 config.js（老師可直接在 GitHub 網頁上編輯）；加密內容在 content.enc.js */
 const CONFIG = Object.assign({ API: '', ROSTER: false, FREE_ROAM: false, BOSS_REQ: 0.6 }, window.PVQ_CONFIG || {});
@@ -325,7 +325,7 @@ const COURSES = {
       [1,'adv','C'],[2,'adv','C'],[11,'adv','C'],[19,'adv','C'],[12,'adv','C'],
       [7,'adv','D'],[8,'adv','D'],[9,'adv','D'],[10,'adv','D'],[13,'adv','D'],
       [20,'app','app'],[21,'app','app'],[22,'app','app'],[23,'app','app'],[24,'app','app'],[25,'app','app'],[26,'app','app'],[27,'app','app'],[28,'app','app'],[29,'app','app']],
-    topics: { 13: ['PSC', 'PSCSTAB'], 12: ['TANDEM'], 20: ['PSC'], 21: ['PSC'], 22: ['PSC'], 23: ['PSC'], 24: ['PSCSTAB'], 25: ['TANDEM'], 26: ['PSC'], 27: ['PSC'], 29: ['SOLAR', 'HER', 'OER', 'NH3'] },
+    topics: { 13: ['PSC', 'PSCSTAB'], 12: ['TANDEM'], 20: ['PSC'], 21: ['PSC'], 22: ['PSC'], 23: ['PSC'], 24: ['PSCSTAB'], 25: ['TANDEM'], 26: ['PSC', 'MODULE'], 27: ['PSC', 'FLEX'], 29: ['SOLAR', 'HER', 'OER', 'NH3'] },
     orig: c => (c.id === 0 || c.bonus) ? '' : (c.id <= 13 ? 'Nelson 原書第 ' + c.id + ' 章' : (c.ref || '')),
     secs: { math: '數理基礎', semi: '半導體元件', pv: '太陽電池' } },
   ec: { no: '課程二', name: '電化學', icon: '⚗️',
@@ -361,7 +361,7 @@ const COURSES = {
       [204,'adv','C'],[205,'adv','C'],[206,'adv','C'],[215,'adv','C'],[216,'adv','C'],
       [207,'adv','D'],[208,'adv','D'],
       [209,'app','app'],[210,'app','app'],[217,'app','app'],[218,'app','app'],[219,'app','app'],[220,'app','app']],
-    topics: { 208: ['OSTAB'], 209: ['OPD'], 210: ['OPV'], 217: ['OPV'], 218: ['OPV'], 219: ['OPD'], 220: ['OPV', 'OPD'] },
+    topics: { 208: ['OSTAB'], 209: ['OPD'], 207: ['OPV', 'MODULE'], 210: ['OPV', 'FLEX'], 217: ['OPV'], 218: ['OPV'], 219: ['OPD'], 220: ['OPV', 'OPD'] },
     orig: c => c.ref || '',
     secs: { mol: '有機半導體基礎', dev: '元件物理', proc: '製程與應用' } },
   oc: { no: '課程四', name: '有機化學', icon: '🧪',
@@ -714,6 +714,7 @@ function skipTo(id) { S.skip = S.skip || {}; S.skip[id] = 1; save(); Rec.send('s
 /* ---------------- views: chapter ---------------- */
 function viewChapter(V, id) {
   const c = CH.find(x => x.id === id); if (!c) return go('map');
+  window._curCh = id;
   if (S.course !== c.course) { S.course = c.course; save(false); }
   V.innerHTML = `<button class="btn ghost small" style="color:#fff;border-color:#475569" onclick="go('map')">← 回地圖</button>
   <div class="chhead"><div class="muted" style="color:#fbbf24;font-weight:700">${c.label}</div>
@@ -724,6 +725,7 @@ function viewChapter(V, id) {
     <div class="path" id="path"></div></div>
   ${c.topics && c.topics.length ? `<div class="card" style="border:2px solid #10b981"><b>📡 本專題的研究前線</b>：${c.topics.map(t => `<button class="btn small ghost" style="margin:2px" onclick="go('frontier','T:${t}')">${TOPICS[t] || t}（${FRONT.cards.filter(x => x.topics.includes(t)).length} 張卡）</button>`).join('')}
     <div class="muted" style="font-size:13px;margin-top:4px">讀完本關的基礎，再到研究前線走完「專題路線」：每張文獻卡都標出用到這一關的哪些觀念。</div></div>` : ''}
+  <div id="litA">${litFor(c.id)}</div>
   ${c.prereq && c.prereq.length ? `<div class="card" style="border:2px solid #6366f1"><b>🔗 先修基礎關卡</b>：這個研究專題用到下列基礎課的觀念，卡住時可隨時回去複習。<div style="margin-top:6px">${c.prereq.map(([pid, why]) => { const pc = CH.find(x => x.id === pid); return pc ? `<button class="btn small ghost" style="margin:2px;text-align:left" onclick="go('chapter',${pid})">${pc.icon || ''} ${esc(pc.label || '')} ${esc(pc.title)}${why ? `<br><span class="muted" style="font-size:12px">↳ ${why}</span>` : ''}</button>` : ''; }).join('')}</div></div>` : ''}
   <div id="concepts"></div><div id="probs"></div><div id="bossArea"></div>`;
   const P = $('#path', V);
@@ -1169,9 +1171,9 @@ function viewPlacement(V, ck) {
 }
 
 /* ---------------- 📡 研究前線（文獻卡 + Journal Club） ---------------- */
-const FRONT = { cards: [], jc: [], comments: [], loaded: false, err: '' };
-const TOPICS = { PSC: '🧱 鈣鈦礦電池：效率與界面', PSCSTAB: '🛡️ 鈣鈦礦穩定性', TANDEM: '🥞 疊層電池', SOLAR: '☀️ 太陽能驅動化學', HER: '💧 產氫 HER', OER: '🫧 產氧 OER', OWS: '⚡ 全水分解', NH3: '🌱 產氨', CO2: '🍃 CO₂ 捕捉／還原', OPV: '🌈 有機太陽電池 OPV', OPD: '📷 有機光偵測器 OPD', OSTAB: '🛡️ 有機元件穩定性與製程', CPOLY: '〰️ 共軛高分子合成與設計', GEL: '💧 水膠與生醫高分子', METHOD: '📏 方法與規範' };
-const TOPIC_GROUPS = [['☀️ 太陽電池', ['PSC', 'PSCSTAB', 'TANDEM']], ['⚗️ 電化學與太陽燃料', ['SOLAR', 'HER', 'OER', 'OWS', 'NH3', 'CO2']], ['🌈 有機光電', ['OPV', 'OPD', 'OSTAB']], ['🔗 高分子與生醫材料', ['CPOLY', 'GEL']], ['📏 共通', ['METHOD']]];
+const FRONT = { cards: [], jc: [], comments: [], papers: [], upd: '', loaded: false, err: '' };
+const TOPICS = { PSC: '🧱 鈣鈦礦電池：效率與界面', PSCSTAB: '🛡️ 鈣鈦礦穩定性', TANDEM: '🥞 疊層電池', MODULE: '🧩 大面積塗佈與模組', FLEX: '🪶 軟性與透明電極（ITO-free）', SOLAR: '☀️ 太陽能驅動化學', HER: '💧 產氫 HER', OER: '🫧 產氧 OER', OWS: '⚡ 全水分解', NH3: '🌱 產氨', CO2: '🍃 CO₂ 捕捉／還原', OPV: '🌈 有機太陽電池 OPV', OPD: '📷 有機光偵測器 OPD', OSTAB: '🛡️ 有機元件穩定性與製程', CPOLY: '〰️ 共軛高分子合成與設計', GEL: '💧 水膠與生醫高分子', METHOD: '📏 方法與規範' };
+const TOPIC_GROUPS = [['☀️ 太陽電池', ['PSC', 'PSCSTAB', 'TANDEM', 'MODULE', 'FLEX']], ['⚗️ 電化學與太陽燃料', ['SOLAR', 'HER', 'OER', 'OWS', 'NH3', 'CO2']], ['🌈 有機光電', ['OPV', 'OPD', 'OSTAB']], ['🔗 高分子與生醫材料', ['CPOLY', 'GEL']], ['📏 共通', ['METHOD']]];
 const cardDone = cd => { const ex = parseJSON(cd.ex, []); return ex.length ? ex.every((q, j) => S.quiz['F:' + cd.id + '#' + j] && S.quiz['F:' + cd.id + '#' + j].ok) : !!(S.fopen || {})[cd.id]; };
 function checkTrack(t) {
   const L = FRONT.cards.filter(c => c.topics.includes(t)); S.tracks = S.tracks || {};
@@ -1180,21 +1182,50 @@ function checkTrack(t) {
 const FTAGS = { '共識': '✅ 已有共識', '新提出': '🔬 新提出', '爭議': '⚠️ 有爭議' };
 async function sha256hex(t) { const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join(''); }
 async function frontierKey() { const t = LS.get(KEYP + 'ticket', ''); return sha256hex('FOEM-frontier|' + String(t).normalize('NFKC').trim()); }
+const normCard = c => Object.assign(c, { concepts: Array.isArray(c.concepts) ? c.concepts : String(c.concepts || '').split(/[,，\s]+/).filter(Boolean), topics: Array.isArray(c.topics) ? c.topics : String(c.topic || '').split(/[,，\s]+/).filter(Boolean) });
+/* 研究前線資料檔 frontier.enc.json：與課程內容分開，用課程內容裡的前線金鑰 X.fk 解密；每週更新只要換這一個檔 */
+async function loadFrontierFile() {
+  if (!XC.fk) return null;
+  try {
+    const r = await fetch('frontier.enc.json?t=' + Date.now(), { cache: 'no-store' }); if (!r.ok) return null;
+    const P = await r.json();
+    const key = await crypto.subtle.importKey('raw', b64(XC.fk), 'AES-GCM', false, ['decrypt']);
+    let buf = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b64(P.iv) }, key, b64(P.ct));
+    if (P.z && window.DecompressionStream) buf = await new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
+    return JSON.parse(new TextDecoder().decode(buf));
+  } catch (e) { console.warn('frontier file', e); return null; }
+}
 async function loadFrontier() {
-  if (!CONFIG.API) { FRONT.err = '老師尚未設定紀錄伺服器'; return; }
-  const key = await frontierKey();
-  let r = await apiGet({ action: 'frontier', key, sid: S.sid });
-  if (r && r.error === 'nokey') {   // 第一次使用：自動設定研究前線金鑰（由通行碼推導）
-    try { await fetch(CONFIG.API, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ action: 'setkey', key }) }); } catch (e) {}
-    await new Promise(x => setTimeout(x, 2500)); r = await apiGet({ action: 'frontier', key, sid: S.sid });
-  }
-  if (!r || r.error) { FRONT.err = r && r.error === 'key' ? '研究前線金鑰尚未設定或已更換，請通知老師。' : '暫時讀不到研究前線（網路不穩？）'; return; }
-  FRONT.cards = (r.cards || []).map(c => Object.assign(c, { concepts: String(c.concepts || '').split(/[,，\s]+/).filter(Boolean), topics: String(c.topic || '').split(/[,，\s]+/).filter(Boolean) }));
-  FRONT.jc = r.jc || []; FRONT.comments = r.comments || []; FRONT.loaded = true; FRONT.err = '';
-  mergeKB(r.kb || []);
+  const L = await loadFrontierFile();
+  if (L) { FRONT.papers = L.papers || []; FRONT.upd = L.upd || ''; FRONT.cards = (L.cards || []).map(normCard); FRONT.jc = L.jc || []; FRONT.loaded = true; FRONT.err = ''; mergeKB(L.kb || []); }
+  if (CONFIG.API) {
+    const key = await frontierKey();
+    let r = await apiGet({ action: 'frontier', key, sid: S.sid });
+    if (r && r.error === 'nokey') {   // 第一次使用：自動設定研究前線金鑰（由通行碼推導）
+      try { await fetch(CONFIG.API, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ action: 'setkey', key }) }); } catch (e) {}
+      await new Promise(x => setTimeout(x, 2500)); r = await apiGet({ action: 'frontier', key, sid: S.sid });
+    }
+    if (r && !r.error) {
+      const have = new Set(FRONT.cards.map(c => c.id));
+      (r.cards || []).forEach(c => { if (!have.has(c.id)) FRONT.cards.push(normCard(c)); else if (c.mine) (FRONT.cards.find(x => x.id === c.id) || {}).mine = 1; });
+      FRONT.jc = FRONT.jc.concat(r.jc || []); FRONT.comments = r.comments || []; FRONT.loaded = true; FRONT.err = '';
+      mergeKB(r.kb || []);
+    } else if (!L) FRONT.err = r && r.error === 'key' ? '研究前線金鑰尚未設定或已更換，請通知老師。' : '暫時讀不到研究前線（網路不穩？）';
+  } else if (!L) FRONT.err = '找不到研究前線資料檔（frontier.enc.json），請通知老師。';
   if (FRONT.cards.some(c => c.mine)) checkBadges();
   if (curView === 'frontier') go('frontier');
-  if (curView === 'instr' && (r.kb || []).length) go('instr');
+  if (curView === 'chapter' && FRONT.papers.length) { const e = $('#litA'); if (e && window._curCh) e.innerHTML = litFor(window._curCh); }
+  if (curView === 'instr' && ((L && L.kb) || []).length) go('instr');
+}
+const driveUrl = id => 'https://drive.google.com/file/d/' + encodeURIComponent(id) + '/view';
+function litFor(cid) {
+  const L = FRONT.papers.filter(p => (p.ch || []).includes(cid) && !p.si);
+  if (!L.length) return '';
+  const cards = FRONT.cards.filter(c => c.drive && L.some(p => p.id === c.drive));
+  const star = new Set(cards.map(c => c.drive)); L.sort((a, b) => (star.has(b.id) ? 1 : 0) - (star.has(a.id) ? 1 : 0));
+  return `<div class="card" style="border:2px solid #0ea5e9"><b>📚 實驗室文獻庫：和本關有關的論文 ${L.length} 篇</b>${cards.length ? `　⭐ 精讀卡 ${cards.length} 張` : ''}
+    <div style="margin-top:6px">${L.slice(0, 5).map(p => `<div style="margin:3px 0;font-size:14px">• ${esc(p.t)} <span class="muted">${esc([p.j, p.y].filter(Boolean).join(' '))}</span></div>`).join('')}</div>
+    <button class="btn small ghost" style="margin-top:6px" onclick="go('frontier','C:${cid}')">在文獻索引中看全部 ${L.length} 篇 →</button></div>`;
 }
 /* 雲端知識庫（專題比較卡、儀器、文獻用例）：以編號覆蓋或新增到內容檔的版本上 */
 function mergeKB(rows) {
@@ -1254,12 +1285,15 @@ function renderFrontCard(cd, open) {
 }
 function viewFrontier(V, openId) {
   let topic = 'all';
+  let pch = 0;
   if (openId && String(openId).startsWith('T:')) { topic = String(openId).slice(2); openId = null; }
+  if (openId && String(openId).startsWith('C:')) { pch = +String(openId).slice(2); openId = null; }
   V.innerHTML = `<div class="card"><h2 style="margin:0">📡 研究前線</h2>
     <div class="muted">課本是主幹，論文是不斷長出的枝葉。每張卡片都標出它用到哪些基礎觀念，點一下就能回到課程複習。</div>
     <div style="font-size:14px;margin-top:6px">🌱 成長模式：<b>新文獻 → 研究前線卡 → 專題路線</b>（同主題的卡片依時間串起來）<b>→ 卡片累積夠多、知識穩定後，整理成正式課程章節</b>。選一個主題，就能看到該專題路線的進度。</div>
     ${FRONT.loaded ? '' : `<p class="muted">${FRONT.err || '讀取中…'}</p>`}</div>
     <div id="jcA"></div>
+    <div id="litIdx"></div>
     <div id="themesA"></div>
     <div class="card"><h3 style="margin:0 0 6px">📚 研究前線卡庫（單篇）</h3><div id="fchips"></div>
       <input class="search" id="fs" placeholder="搜尋標題、材料、關鍵字（例如 NiFe、STH、15N）…" style="margin-top:8px"></div>
@@ -1283,6 +1317,8 @@ function viewFrontier(V, openId) {
     if (!qs.length) jq.innerHTML = '<div class="muted">（這期沒有導讀題）</div>';
     $('#jcA', V).appendChild(box);
   }
+  // ---- 實驗室文獻索引 ----
+  if (FRONT.papers.length) renderLitIndex($('#litIdx', V), pch);
   // ---- 專題比較卡 ----
   if (XC.themes.length) { const TA = $('#themesA', V); TA.insertAdjacentHTML('beforeend', `<div class="card" style="border:2px solid #6366f1"><h3 style="margin:0">🧭 專題比較卡</h3><div class="muted" style="font-size:14px">同一個研究問題的多篇論文放在一起比：問題出在哪個物理量、各家怎麼解、用什麼證據證明、還有什麼沒解決。單篇卡在下方卡庫。</div></div>`);
     XC.themes.forEach(T => TA.appendChild(renderTheme(T, openId === T.id))); }
@@ -1325,6 +1361,42 @@ function viewFrontier(V, openId) {
     $$('#fform input, #fform textarea', V).forEach(x => { if (x.type === 'checkbox') x.checked = false; else x.value = ''; });
     S.submits = (S.submits || 0) + 1; save(); addXP(20, '投稿研究前線卡'); toast('投稿已送出，等待老師審核！');
   };
+}
+
+function renderLitIndex(box, pch) {
+  const P = FRONT.papers, st = { tp: 'all', y: 'all', kw: '', si: false, star: false, ch: pch || 0, n: 30 };
+  const starIds = new Set(FRONT.cards.filter(c => c.drive).map(c => c.drive));
+  const years = [...new Set(P.map(p => p.y).filter(Boolean))].sort().reverse();
+  const chName = id => { const c = CH.find(x => x.id === id); return c ? `${COURSES[c.course].no} ${c.label || ''}` : '#' + id; };
+  box.innerHTML = `<div class="card" style="border:2px solid #0ea5e9"><h3 style="margin:0">📚 實驗室文獻索引（${P.filter(p => !p.si).length} 篇）</h3>
+    <div class="muted" style="font-size:14px">實驗室 Google Drive「Literature」資料夾裡的所有論文，依研究主軸自動分類、連到對應的課程關卡。⭐ 是已經做成精讀卡的論文。${FRONT.upd ? '索引更新：' + esc(FRONT.upd) + '。' : ''}每週自動掃描新上傳的 PDF（放進 Literature 任何資料夾或「Inbox」即可）。</div>
+    <div class="lchips" style="margin-top:6px"></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;align-items:center"><input class="search" id="lkw" placeholder="搜尋標題、期刊、資料夾（例如 SAM、slot-die、NiFe、Y6）…" style="flex:1;min-width:220px">
+      <select id="lyr" style="padding:6px;border-radius:8px;border:1.5px solid var(--line)"><option value="all">全部年份</option>${years.map(y => `<option>${y}</option>`).join('')}</select>
+      <label style="font-size:13px"><input type="checkbox" id="lstar"> 只看 ⭐</label><label style="font-size:13px"><input type="checkbox" id="lsi"> 含補充資料 (SI)</label></div>
+    <div class="lnote muted" style="font-size:13px;margin-top:4px"></div><div class="llist" style="margin-top:6px"></div></div>`;
+  const cnt = k => P.filter(p => !p.si && p.tp.includes(k)).length;
+  const chips = () => { $('.lchips', box).innerHTML = `<button class="btn small ${st.tp === 'all' ? '' : 'ghost'}" data-k="all" style="margin:2px">全部</button>` + TOPIC_GROUPS.map(([g, ks]) => ks.filter(k => cnt(k)).map(k => `<button class="btn small ${k === st.tp ? '' : 'ghost'}" data-k="${k}" style="margin:2px">${TOPICS[k]}（${cnt(k)}）</button>`).join('')).join('');
+    $$('.lchips button', box).forEach(b => b.onclick = () => { st.tp = b.dataset.k; st.n = 30; chips(); list(); }); };
+  const list = () => {
+    const kw = st.kw.toLowerCase();
+    const arr = P.filter(p => (st.si || !p.si) && (st.tp === 'all' || p.tp.includes(st.tp)) && (st.y === 'all' || p.y === st.y) && (!st.ch || (p.ch || []).includes(st.ch)) && (!st.star || starIds.has(p.id)) &&
+      (!kw || (p.t + ' ' + p.j + ' ' + p.f + ' ' + (p.note || '')).toLowerCase().includes(kw)));
+    $('.lnote', box).innerHTML = `符合 ${arr.length} 篇${st.ch ? `・只看關卡 <b>${esc(chName(st.ch))}</b> <a href="javascript:void(0)" class="lclr">（取消）</a>` : ''}`;
+    const c = $('.lclr', box); if (c) c.onclick = () => { st.ch = 0; list(); };
+    $('.llist', box).innerHTML = arr.slice(0, st.n).map(p => { const cd = FRONT.cards.find(x => x.drive === p.id);
+      return `<div style="border-top:1px solid var(--line);padding:6px 0"><div>${cd ? '⭐ ' : ''}<b>${esc(p.t)}</b>${p.unk ? ' <span class="pill">標題待補</span>' : ''}${p.si ? ' <span class="pill">SI</span>' : ''}</div>
+        <div class="muted" style="font-size:13px">${esc([p.j, p.y].filter(Boolean).join(' ・ ') || '期刊未知')}　📁 ${esc(p.f || 'Literature')}　<a href="${driveUrl(p.id)}" target="_blank" rel="noopener">開啟 PDF</a>${cd ? `　<a href="javascript:void(0)" onclick="go('frontier','${cd.id}')">看精讀卡</a>` : ''}</div>
+        <div style="margin-top:2px">${p.tp.map(t => `<span class="pill sun" style="font-size:12px">${TOPICS[t] || esc(t)}</span>`).join('')}${(p.ch || []).filter(id => CH.find(x => x.id === id)).map(id => `<button class="btn small ghost" style="margin:1px;padding:1px 6px;font-size:12px" title="${esc((CH.find(x => x.id === id) || {}).title || '')}" title="${esc((CH.find(x => x.id === id) || {}).title || '')}" onclick="go('chapter',${id})">${esc(chName(id))}</button>`).join('')}</div></div>`; }).join('') +
+      (arr.length > st.n ? `<button class="btn small ghost lmore" style="margin-top:6px">再顯示 30 篇（還有 ${arr.length - st.n}）</button>` : '');
+    const m = $('.lmore', box); if (m) m.onclick = () => { st.n += 30; list(); };
+  };
+  $('#lkw', box).oninput = e => { st.kw = e.target.value; st.n = 30; list(); };
+  $('#lyr', box).onchange = e => { st.y = e.target.value; list(); };
+  $('#lsi', box).onchange = e => { st.si = e.target.checked; list(); };
+  $('#lstar', box).onchange = e => { st.star = e.target.checked; list(); };
+  chips(); list();
+  if (pch) setTimeout(() => box.scrollIntoView({ behavior: 'smooth' }), 150);
 }
 
 /* ---------------- ⚔️ 競技場：每日挑戰、對戰、週聯賽 ---------------- */

@@ -28,6 +28,9 @@ input,select,textarea{font:inherit}
 .gatebox{background:var(--card);border-radius:20px;max-width:420px;width:100%;padding:28px 26px;box-shadow:0 20px 60px rgba(0,0,0,.45)}
 .gatebox h1{margin:0 0 4px;font-size:24px}
 .gatebox .sub{color:var(--mute);font-size:14px;margin-bottom:18px}
+.gatebox .scope{text-align:left;background:#f8fafc;border:1.5px solid var(--line);border-radius:14px;padding:12px 14px;margin:0 0 16px;font-size:14px;line-height:1.6}
+.gatebox .scopetags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.gatebox .scopetags span{background:#fff;border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:13px;white-space:nowrap}
 .field{margin:12px 0}
 .field label{display:block;font-size:14px;font-weight:600;margin-bottom:4px}
 .field input{width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;background:#fff}
@@ -212,7 +215,13 @@ table.data th{background:#f8f5ec}
   <div class="gatebox">
     <div style="font-size:44px">⚛️🔑</div>
     <h1>FOEM 修練場</h1>
-    <div class="sub">明志科大材料系 黃裕清老師實驗室（FOEM）<br>半導體・光電・能源元件學習基地｜僅限實驗室成員</div>
+    <div class="sub">明志科大材料系 黃裕清老師實驗室（FOEM）｜實驗室成員學習基地</div>
+    <div class="scope">
+      <div style="font-weight:800;margin-bottom:6px">🔭 FOEM 實驗室研究範疇</div>
+      <div>從材料的分子設計、合成與薄膜製程，到元件物理、量測分析與系統整合：以光電與能源材料為核心，延伸到電化學與生醫材料。</div>
+      <div class="scopetags"><span>☀️ 鈣鈦礦與新世代太陽電池</span><span>⚡ 電化學產氫・產氧・產氨</span><span>🔗 太陽能驅動化學反應</span><span>🌈 有機光電 OPV／OPD</span><span>🧪 有機化學與高分子材料</span><span>🧬 生醫材料</span><span>🔬 材料分析與量測</span></div>
+      <div class="muted" style="font-size:12px;margin-top:6px">課程從基礎到研究前線，持續擴充中。</div>
+    </div>
 
     <div id="stepTicket">
       <div class="ticket">🎫 <b>第一步：出示入場券</b><br>請輸入實驗室通行碼，或直接掃描老師發的 QR code 進入。沒有通行碼就打不開內容（內容已加密）。</div>
@@ -267,7 +276,7 @@ table.data th{background:#f8f5ec}
 <div id="modal" class="hidden"><div class="box" id="modalBox"></div></div>
 
 <script src="config.js"></script>
-<script src="content.enc.js?v=06d89df12f"></script>
+<script src="content.enc.js?v=30a7d626ad"></script>
 <script>
 /* 設定在 config.js（老師可直接在 GitHub 網頁上編輯）；加密內容在 content.enc.js */
 const CONFIG = Object.assign({ API: '', ROSTER: false, FREE_ROAM: false, BOSS_REQ: 0.6 }, window.PVQ_CONFIG || {});

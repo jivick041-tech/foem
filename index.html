@@ -276,7 +276,7 @@ table.data th{background:#f8f5ec}
 <div id="modal" class="hidden"><div class="box" id="modalBox"></div></div>
 
 <script src="config.js"></script>
-<script src="content.enc.js?v=30a7d626ad"></script>
+<script src="content.enc.js?v=3ac49fcdaf"></script>
 <script>
 /* 設定在 config.js（老師可直接在 GitHub 網頁上編輯）；加密內容在 content.enc.js */
 const CONFIG = Object.assign({ API: '', ROSTER: false, FREE_ROAM: false, BOSS_REQ: 0.6 }, window.PVQ_CONFIG || {});
@@ -1340,22 +1340,30 @@ function renderFrontCard(cd, open) {
   d.addEventListener('toggle', () => { if (d.open) { typeset(d); Rec.send('card_open', { item: cd.id }); S.fopen = S.fopen || {}; if (!S.fopen[cd.id]) { S.fopen[cd.id] = 1; save(); cd.topics.forEach(checkTrack); } } }, { once: true });
   return d;
 }
+let FCAT = 'all', FSEC = 'themes';
+const catKeys = () => FCAT === 'all' ? null : (TOPIC_GROUPS.find(g => g[0] === FCAT) || [0, []])[1];
+const inCat = tps => { const K = catKeys(); return !K || (tps || []).some(t => K.includes(t)); };
+const primaryCat = tps => { for (const t of (tps || [])) { const g = TOPIC_GROUPS.find(g => g[1].includes(t)); if (g) return g[0]; } return '📏 共通'; };
 function viewFrontier(V, openId) {
   let topic = 'all';
   let pch = 0;
-  if (openId && String(openId).startsWith('T:')) { topic = String(openId).slice(2); openId = null; }
-  if (openId && String(openId).startsWith('C:')) { pch = +String(openId).slice(2); openId = null; }
+  if (openId && String(openId).startsWith('T:')) { topic = String(openId).slice(2); openId = null; FSEC = 'cards'; const g = TOPIC_GROUPS.find(g => g[1].includes(topic)); if (g) FCAT = g[0]; }
+  if (openId && String(openId).startsWith('C:')) { pch = +String(openId).slice(2); openId = null; FSEC = 'lit'; FCAT = 'all'; }
+  if (openId && XC.themes.some(T => T.id === openId)) { FSEC = 'themes'; FCAT = 'all'; }
+  if (openId && FRONT.cards.some(c => c.id === openId)) { FSEC = 'cards'; FCAT = 'all'; }
   V.innerHTML = `<div class="card"><h2 style="margin:0">📡 研究前線</h2>
     <div class="muted">課本是主幹，論文是不斷長出的枝葉。每張卡片都標出它用到哪些基礎觀念，點一下就能回到課程複習。</div>
     <div style="font-size:14px;margin-top:6px">🌱 成長模式：<b>新文獻 → 研究前線卡 → 專題路線</b>（同主題的卡片依時間串起來）<b>→ 卡片累積夠多、知識穩定後，整理成正式課程章節</b>。選一個主題，就能看到該專題路線的進度。</div>
     ${FRONT.loaded ? '' : `<p class="muted">${FRONT.err || '讀取中…'}</p>`}</div>
     <div id="jcA"></div>
-    <div id="litIdx"></div>
-    <div id="themesA"></div>
+    <div class="card" id="fnav" style="position:sticky;top:96px;z-index:5;padding:10px 14px"></div>
+    <div id="litIdx" class="fsec" data-s="lit"></div>
+    <div id="themesA" class="fsec" data-s="themes"></div>
+    <div class="fsec" data-s="cards">
     <div class="card"><h3 style="margin:0 0 6px">📚 研究前線卡庫（單篇）</h3>${GUEST ? '<div class="muted" style="font-size:14px">預覽只顯示最新 3 張精讀卡；完整卡庫需登入。</div>' : ''}<div id="fchips"></div>
       <input class="search" id="fs" placeholder="搜尋標題、材料、關鍵字（例如 NiFe、STH、15N）…" style="margin-top:8px"></div>
-    <div id="flist"></div>
-    <details class="card" id="fsub"><summary><b>✍️ 投稿研究前線卡</b>（Journal Club 報告人請在會後投稿；老師審核通過後上線，可獲「文獻獵人」徽章）</summary><div id="fform"></div></details>`;
+    <div id="flist"></div></div>
+    <details class="card fsec" data-s="cards" id="fsub"><summary><b>✍️ 投稿研究前線卡</b>（Journal Club 報告人請在會後投稿；老師審核通過後上線，可獲「文獻獵人」徽章）</summary><div id="fform"></div></details>`;
   // ---- Journal Club ----
   const jcs = FRONT.jc.slice().sort((a, b) => String(b.date).localeCompare(String(a.date)));
   if (jcs.length) {
@@ -1374,16 +1382,31 @@ function viewFrontier(V, openId) {
     if (!qs.length) jq.innerHTML = '<div class="muted">（這期沒有導讀題）</div>';
     $('#jcA', V).appendChild(box);
   }
+  // ---- 分類導覽 ----
+  const nTh = XC.themes.filter(T => inCat(T.topics)).length, nCd = FRONT.cards.filter(c => inCat(c.topics)).length,
+    nLp = FRONT.papers.filter(p => !p.si && inCat(p.tp)).length;
+  const catN = g => { const K = g[1], f = tps => (tps || []).some(t => K.includes(t)); return XC.themes.filter(T => f(T.topics)).length + FRONT.cards.filter(c => f(c.topics)).length; };
+  $('#fnav', V).innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center"><b style="font-size:14px;margin-right:4px">領域</b>
+      <button class="btn small ${FCAT === 'all' ? '' : 'ghost'}" data-c="all">全部</button>${TOPIC_GROUPS.map(g => `<button class="btn small ${FCAT === g[0] ? '' : 'ghost'}" data-c="${g[0]}">${g[0]}<span style="opacity:.6;font-size:12px"> ${catN(g)}</span></button>`).join('')}</div>
+    <div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin-top:6px"><b style="font-size:14px;margin-right:4px">內容</b>
+      ${[['themes', '🧭 專題比較', nTh], ['cards', '📚 精讀卡', nCd], ['lit', '🗂️ 文獻索引', nLp]].map(([k, n, c]) => `<button class="btn small ${FSEC === k ? '' : 'ghost'}" data-s="${k}">${n}（${c}）</button>`).join('')}</div>`;
+  $$('#fnav button[data-c]', V).forEach(b => b.onclick = () => { FCAT = b.dataset.c; go('frontier'); });
+  $$('#fnav button[data-s]', V).forEach(b => b.onclick = () => { FSEC = b.dataset.s; go('frontier'); });
+  $$('.fsec', V).forEach(e => e.style.display = e.dataset.s === FSEC ? '' : 'none');
   // ---- 實驗室文獻索引 ----
   if (FRONT.papers.length) renderLitIndex($('#litIdx', V), pch);
   // ---- 專題比較卡 ----
   if (XC.themes.length) { const TA = $('#themesA', V); TA.insertAdjacentHTML('beforeend', `<div class="card" style="border:2px solid #6366f1"><h3 style="margin:0">🧭 專題比較卡</h3><div class="muted" style="font-size:14px">同一個研究問題的多篇論文放在一起比：問題出在哪個物理量、各家怎麼解、用什麼證據證明、還有什麼沒解決。單篇卡在下方卡庫。</div></div>`);
-    (GUEST ? XC.themes.slice(0, 1) : XC.themes).forEach(T => TA.appendChild(renderTheme(T, openId === T.id)));
+    const TH = (GUEST ? XC.themes.slice(0, 1) : XC.themes).filter(T => inCat(T.topics));
+    TOPIC_GROUPS.map(g => g[0]).forEach(gn => { const L = TH.filter(T => (FCAT === 'all' ? primaryCat(T.topics) : FCAT) === gn); if (!L.length) return;
+      TA.insertAdjacentHTML('beforeend', `<div style="margin:18px 0 8px;display:inline-block;background:#eef2ff;color:#312e81;border:2px solid #6366f1;border-radius:999px;padding:4px 14px;font-weight:800;font-size:16px">${gn}<span style="font-weight:400;font-size:14px;opacity:.8">　${L.length} 張</span></div>`);
+      L.forEach(T => TA.appendChild(renderTheme(T, openId === T.id))); });
+    if (!TH.length) TA.insertAdjacentHTML('beforeend', '<div class="card muted">這個領域還沒有專題比較卡。</div>');
     if (GUEST && XC.themes.length > 1) TA.insertAdjacentHTML('beforeend', `<div class="muted" style="font-size:14px;margin:6px 4px">……還有 ${XC.themes.length - 1} 張專題比較卡，登入後可查看。</div>`); }
   // ---- 卡庫 ----
   const cnt = t => FRONT.cards.filter(c => c.topics.includes(t)).length;
   const chips = () => { $('#fchips', V).innerHTML = `<button class="btn small ${topic === 'all' ? '' : 'ghost'}" data-k="all" style="margin:2px">全部（${FRONT.cards.length}）</button>` +
-      TOPIC_GROUPS.map(([g, ks]) => `<div style="margin-top:6px"><span class="muted" style="font-size:13px;font-weight:700">${g}</span><br>${ks.map(k => `<button class="btn small ${k === topic ? '' : 'ghost'}" data-k="${k}" style="margin:2px">${TOPICS[k]}（${cnt(k)}）${(S.tracks || {})[k] ? ' 🎖️' : ''}</button>`).join('')}</div>`).join('');
+      TOPIC_GROUPS.filter(g => FCAT === 'all' || g[0] === FCAT).map(([g, ks]) => `<div style="margin-top:6px"><span class="muted" style="font-size:13px;font-weight:700">${g}</span><br>${ks.map(k => `<button class="btn small ${k === topic ? '' : 'ghost'}" data-k="${k}" style="margin:2px">${TOPICS[k]}（${cnt(k)}）${(S.tracks || {})[k] ? ' 🎖️' : ''}</button>`).join('')}</div>`).join('');
     $$('#fchips button', V).forEach(b => b.onclick = () => { topic = b.dataset.k; chips(); list(); }); };
   const list = () => {
     const kw = ($('#fs', V).value || '').toLowerCase(), L = $('#flist', V); L.innerHTML = '';
@@ -1393,7 +1416,7 @@ function viewFrontier(V, openId) {
         <div class="prog" style="margin:6px 0"><i style="width:${T.length ? Math.round(dn / T.length * 100) : 0}%"></i></div>
         <div class="muted" style="font-size:13px">一張卡「完成」＝判讀練習全部答對（沒有練習題的卡，打開讀過即可）。${home.length ? '對應課程：' + home.map(c => `<a href="javascript:void(0)" onclick="go('chapter',${c.id})">${COURSES[c.course].no} ${esc(c.label)}｜${esc(c.title)}</a>`).join('、') : ''}${T.length >= 15 ? '<br>📚 這個專題的卡片已經很多了，老師可以考慮把它整理成正式課程章節。' : ''}</div></div>`);
     }
-    const arr = FRONT.cards.filter(c => (topic === 'all' || c.topics.includes(topic)) && (!kw || JSON.stringify(c).toLowerCase().includes(kw)))
+    const arr = FRONT.cards.filter(c => inCat(c.topics) && (topic === 'all' || c.topics.includes(topic)) && (!kw || JSON.stringify(c).toLowerCase().includes(kw)))
       .sort((a, b) => String(b.date).localeCompare(String(a.date)));
     if (FRONT.loaded && !arr.length) L.insertAdjacentHTML('beforeend', '<div class="card muted">沒有符合的卡片。</div>');
     arr.forEach(c => L.appendChild(renderFrontCard(c, c.id === openId)));
@@ -1445,11 +1468,11 @@ function renderLitIndex(box, pch) {
       <label style="font-size:13px"><input type="checkbox" id="lstar"> 只看 ⭐</label><label style="font-size:13px"><input type="checkbox" id="lsi"> 含補充資料 (SI)</label></div>
     <div class="lnote muted" style="font-size:13px;margin-top:4px"></div><div class="llist" style="margin-top:6px"></div></div>`;
   const cnt = k => P.filter(p => !p.si && p.tp.includes(k)).length;
-  const chips = () => { $('.lchips', box).innerHTML = `<button class="btn small ${st.tp === 'all' ? '' : 'ghost'}" data-k="all" style="margin:2px">全部</button>` + TOPIC_GROUPS.map(([g, ks]) => ks.filter(k => cnt(k)).map(k => `<button class="btn small ${k === st.tp ? '' : 'ghost'}" data-k="${k}" style="margin:2px">${TOPICS[k]}（${cnt(k)}）</button>`).join('')).join('');
+  const chips = () => { $('.lchips', box).innerHTML = `<button class="btn small ${st.tp === 'all' ? '' : 'ghost'}" data-k="all" style="margin:2px">全部</button>` + TOPIC_GROUPS.filter(g => FCAT === 'all' || g[0] === FCAT).map(([g, ks]) => ks.filter(k => cnt(k)).map(k => `<button class="btn small ${k === st.tp ? '' : 'ghost'}" data-k="${k}" style="margin:2px">${TOPICS[k]}（${cnt(k)}）</button>`).join('')).join('');
     $$('.lchips button', box).forEach(b => b.onclick = () => { st.tp = b.dataset.k; st.n = 30; chips(); list(); }); };
   const list = () => {
     const kw = st.kw.toLowerCase();
-    const arr = P.filter(p => (st.si || !p.si) && (st.tp === 'all' || p.tp.includes(st.tp)) && (st.y === 'all' || p.y === st.y) && (!st.ch || (p.ch || []).includes(st.ch)) && (!st.star || starIds.has(p.id)) &&
+    const arr = P.filter(p => inCat(p.tp) && (st.si || !p.si) && (st.tp === 'all' || p.tp.includes(st.tp)) && (st.y === 'all' || p.y === st.y) && (!st.ch || (p.ch || []).includes(st.ch)) && (!st.star || starIds.has(p.id)) &&
       (!kw || (p.t + ' ' + p.j + ' ' + p.f + ' ' + (p.note || '')).toLowerCase().includes(kw)));
     $('.lnote', box).innerHTML = `符合 ${arr.length} 篇${st.ch ? `・只看關卡 <b>${esc(chName(st.ch))}</b> <a href="javascript:void(0)" class="lclr">（取消）</a>` : ''}`;
     const c = $('.lclr', box); if (c) c.onclick = () => { st.ch = 0; list(); };
@@ -1679,7 +1702,7 @@ async function pullProgress(force) {
 const TOOLS = [];  // filled by tools section below
 /* ===================== 專題比較卡（研究前線） ===================== */
 function instrChip(id) { const I = XC.instr.find(x => x.id === id); return `<a class="pill" style="cursor:pointer;background:#ecfeff;color:#0e7490" onclick="go('instr','${id}')">${I ? I.icon + ' ' + esc(I.short || I.id) : '🔬 ' + esc(id)}</a>`; }
-function paperRef(p) { const fc = (FRONT.cards || []).find(c => c.id === p.key); return `<b>${esc(p.short || p.cite || '')}</b>${fc ? ` <a href="javascript:void(0)" onclick="go('frontier','${p.key}')" style="font-size:12px">單篇卡 ${p.key}</a>` : ''}${p.url ? ` <a href="${esc(p.url)}" target="_blank" rel="noopener" style="font-size:12px">原文</a>` : ''}`; }
+function paperRef(p) { const fc = (FRONT.cards || []).find(c => c.id === p.key || (p.drive && c.drive === p.drive)); if (fc) p.key = fc.id; return `<b>${esc(p.short || p.cite || '')}</b>${fc ? ` <a href="javascript:void(0)" onclick="go('frontier','${p.key}')" style="font-size:12px">單篇卡 ${p.key}</a>` : ''}${p.url ? ` <a href="${esc(p.url)}" target="_blank" rel="noopener" style="font-size:12px">原文</a>` : ''}${p.drive && !GUEST ? ` <a href="${driveUrl(p.drive)}" target="_blank" rel="noopener" style="font-size:12px">PDF</a>` : ''}`; }
 function renderTheme(T, open) {
   const d = document.createElement('details'); d.className = 'card'; d.id = 'th_' + cssId(T.id); if (open) d.open = true; d.style.borderLeft = '6px solid #6366f1';
   const P = T.papers || [], step = (n, t, html, key) => html ? `<div class="step${key ? ' key' : ''}"><div class="sn">${n}</div><div class="stt">${t}</div><div>${html}</div></div>` : '';

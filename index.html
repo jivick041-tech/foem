@@ -267,7 +267,7 @@ table.data th{background:#f8f5ec}
 <div id="modal" class="hidden"><div class="box" id="modalBox"></div></div>
 
 <script src="config.js"></script>
-<script src="content.enc.js?v=09b81efe5a"></script>
+<script src="content.enc.js?v=06d89df12f"></script>
 <script>
 /* 設定在 config.js（老師可直接在 GitHub 網頁上編輯）；加密內容在 content.enc.js */
 const CONFIG = Object.assign({ API: '', ROSTER: false, FREE_ROAM: false, BOSS_REQ: 0.6 }, window.PVQ_CONFIG || {});
@@ -301,6 +301,46 @@ async function decryptPayload(pass) {
     base, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
   const buf = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b64(PAYLOAD.iv) }, key, b64(PAYLOAD.ct));
   return new TextDecoder().decode(buf);
+}
+/* 唯讀預覽：網址 #v=預覽碼 → 用預覽碼解開內容金鑰（不會知道真正的通行碼） */
+let GUEST = false;
+async function decryptView(code) {
+  const V = PAYLOAD.vk; if (!V) throw new Error('noview');
+  const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(code.normalize('NFKC').trim()), 'PBKDF2', false, ['deriveKey']);
+  const vk = await crypto.subtle.deriveKey({ name: 'PBKDF2', salt: b64(V.salt), iterations: PAYLOAD.iter, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
+  const raw = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b64(V.iv) }, vk, b64(V.ct));
+  const key = await crypto.subtle.importKey('raw', raw, 'AES-GCM', false, ['decrypt']);
+  return new TextDecoder().decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b64(PAYLOAD.iv) }, key, b64(PAYLOAD.ct)));
+}
+const GUEST_BLOCK = 'input,textarea,select,.opt,.mopt,.quiz,.qz,.q,.exbox,.numin,.ans,.hintb,.boss,.tq,.jq';
+const GUEST_BTN = /跳關|送出|作答|挑戰|開始|提交|檢查|交卷|下一題|對戰|出題|投稿|留言|評分|收藏|匯出|匯入|登出|重新|鑑定|抽卡|AI|問問|兌換|上傳/;
+function guestBlock(e) {
+  if (!GUEST) return;
+  const t = e.target; if (!t.closest || !t.closest('#app')) return;
+  if (t.closest('.tool') && !t.closest('.quiz,.q,.qz,.exbox')) return;
+  if (t.closest('#tabs') || t.closest('summary') || t.closest('.search,#litIdx .lchips,#lkw,#lyr,#lsi,#lstar') || (t.closest('a[href^="http"]'))) return;
+  const b = t.closest('button');
+  const hit = t.closest(GUEST_BLOCK) || (b && GUEST_BTN.test(b.textContent)) || t.closest('#aifab');
+  if (hit) { e.preventDefault(); e.stopPropagation(); if (e.type === 'click') toast('👀 唯讀預覽：可以瀏覽全部內容，但不能作答或使用互動功能'); }
+}
+['click', 'keydown', 'input', 'change', 'pointerdown'].forEach(ev => document.addEventListener(ev, guestBlock, true));
+const GUEST_NOTE = t => `<div class="card" style="background:#fef3c7;border:2px dashed #f59e0b;color:#92400e;font-size:14px">👀 唯讀預覽：${t}</div>`;
+const guestInstrOK = id => !GUEST || instrGroups().flatMap(x => x[1]).slice(0, 3).some(I => I.id === id);
+const guestToolOK = t => { if (!GUEST) return true; const seen = {}; return TOOLS.filter(x => { const k = x.course || 'pv'; if (seen[k]) return false; seen[k] = 1; return true; }).slice(0, 2).includes(t); };
+function startGuest() {
+  GUEST = true;
+  LS.set = () => {}; LS.del = () => {};
+  S = blankState('GUEST', '訪客'); S.nick = '訪客'; S.placementSkipped = true; S.pskip = { pv: 1, ec: 1, oe: 1, oc: 1, pm: 1 }; S.days = [nowDay()];
+  $('#gate').classList.add('hidden'); $('#app').classList.remove('hidden'); document.body.classList.add('in', 'guest');
+  const ai = $('#aifab'); if (ai) ai.style.display = 'none';
+  const bn = document.createElement('div'); bn.id = 'guestBar';
+  bn.style.cssText = 'position:sticky;top:0;z-index:50;background:#fef3c7;color:#92400e;border-bottom:2px solid #f59e0b;padding:6px 12px;font-size:14px;text-align:center';
+  bn.innerHTML = '👀 <b>唯讀預覽</b>：看看 FOEM 修練場能做什麼——灰色關卡要通關才會解鎖，研究前線只開放部分內容；預覽中不能作答、不累積經驗。實驗室成員請用老師給的入場券登入。';
+  $('#app').prepend(bn);
+  renderHUD(); loadFrontier();
+  const m = location.hash.match(/ch=(\d+)/);
+  const cm = m && CH.find(c => c.id === +m[1]);
+  if (cm && unlocked(cm)) go('chapter', +m[1]); else go('map');
 }
 const XC = { themes: [], instr: [], props: [] };  // 專題比較卡、儀器分析（內容檔可 push；之後也可由雲端卡庫補充）
 function loadContent(src) {
@@ -432,7 +472,7 @@ const Rec = {
   q: [],
   init() { this.q = LS.get(KEYP + 'outbox', []); setInterval(() => this.flush(), 15000); },
   send(type, data) {
-    if (!CONFIG.API) return;
+    if (!CONFIG.API || GUEST) return;
     this.q.push(Object.assign({ type, sid: S.sid, name: S.name, nick: S.nick, xp: S.xp, level: levelOf(effXP()).lv, ts: new Date().toISOString(), app: 'PVQuest' }, data));
     LS.set(KEYP + 'outbox', this.q.slice(-300));
     clearTimeout(this._t); this._t = setTimeout(() => this.flush(), 1500);
@@ -461,6 +501,7 @@ function blankState(sid, name) {
     time: {}, days: [], tools: {}, created: Date.now(), updated: Date.now() };
 }
 function save(sync = true) {
+  if (GUEST) return;
   S.updated = Date.now();
   LS.set(KEYP + 'st_' + S.sid, S);
   if (sync && CONFIG.API) { clearTimeout(save._t); save._t = setTimeout(() => {
@@ -534,7 +575,7 @@ function levelOf(xp) {
   return { lv: i + 1, title: LEVELS[i][1], cur, nxt, frac: Math.min(1, (xp - cur) / (nxt - cur)) };
 }
 function addXP(n, why) {
-  if (!n) return;
+  if (!n || GUEST) return;
   const before = levelOf(effXP()).lv;
   S.xp = Math.max(0, S.xp + n);
   let extra = '';
@@ -644,6 +685,7 @@ function go(v, arg) {
   $$('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.v === v || (v === 'chapter' && b.dataset.v === 'map')));
   const V = $('#view'); V.innerHTML = '';
   ({ placement: viewPlacement, frontier: viewFrontier, instr: viewInstr, arena: viewArena, map: viewMap, chapter: viewChapter, tools: viewTools, formulas: viewFormulas, glossary: viewGlossary, wrong: viewWrong, hall: viewHall, me: viewMe })[v](V, arg);
+  if (GUEST && { arena: 1, wrong: 1, hall: 1, me: 1 }[v]) V.insertAdjacentHTML('afterbegin', GUEST_NOTE({ arena: '競技場（對戰、排行）登入後才能參加，這裡只是畫面預覽。', wrong: '錯題本會自動收集你答錯的題目，登入作答後才會有內容。', hall: '成就與排行榜登入後才會記錄。', me: '個人紀錄登入後才會累積。' }[v]));
   typeset(V);
   window.scrollTo(0, 0);
   if (v === 'chapter') { curCh = arg; enterT = Date.now(); history.replaceState(null, '', '#ch=' + arg); }
@@ -714,6 +756,7 @@ function skipTo(id) { S.skip = S.skip || {}; S.skip[id] = 1; save(); Rec.send('s
 /* ---------------- views: chapter ---------------- */
 function viewChapter(V, id) {
   const c = CH.find(x => x.id === id); if (!c) return go('map');
+  if (GUEST && !unlocked(c)) { toast('👀 唯讀預覽：尚未解鎖的關卡無法開啟（實驗室成員登入後通關即可進入）'); return go('map'); }
   window._curCh = id;
   if (S.course !== c.course) { S.course = c.course; save(false); }
   V.innerHTML = `<button class="btn ghost small" style="color:#fff;border-color:#475569" onclick="go('map')">← 回地圖</button>
@@ -1040,7 +1083,9 @@ function viewFormulas(V) {
     <input class="search" id="fs" placeholder="搜尋公式名稱或說明…" style="margin-top:10px"></div><div id="fl"></div>`;
   const draw = kw => {
     const L = $('#fl', V); L.innerHTML = '';
+    if (GUEST) L.innerHTML = GUEST_NOTE('只顯示目前已解鎖關卡的公式卡；其餘章節的公式登入並通關後開放。');
     CH.forEach(c => {
+      if (GUEST && !unlocked(c)) return;
       const items = []; c.concepts.forEach(k => (k.formulas || []).forEach(f => items.push([k, f])));
       const f2 = items.filter(([k, f]) => !kw || (f.name + f.meaning + f.tex + k.title).toLowerCase().includes(kw.toLowerCase()));
       if (!f2.length) return;
@@ -1058,8 +1103,10 @@ function viewGlossary(V) {
   const chips = () => { $('#gcs', V).innerHTML = [['all', '全部']].concat(CKEYS.map(k => [k, COURSES[k].no + ' ' + COURSES[k].icon])).map(([k, n]) => `<button class="btn small ${k === gc ? '' : 'ghost'}" data-k="${k}" style="margin:2px">${n}</button>`).join('');
     $$('#gcs button', V).forEach(b => b.onclick = () => { gc = b.dataset.k; chips(); draw($('#gs', V).value.trim()); }); };
   const draw = kw => {
-    const rows = GLOSS.filter(g => (gc === 'all' || (g.course || 'pv') === gc) && (!kw || (g.zh + g.en + (g.cn || '') + g.d).toLowerCase().includes(kw.toLowerCase())));
+    let rows = GLOSS.filter(g => (gc === 'all' || (g.course || 'pv') === gc) && (!kw || (g.zh + g.en + (g.cn || '') + g.d).toLowerCase().includes(kw.toLowerCase())));
+    const total = rows.length; if (GUEST) rows = rows.slice(0, 12);
     $('#gl', V).innerHTML = `<table class="data" style="width:100%"><tr><th>名詞</th><th>English</th><th>白話解釋</th></tr>${rows.map(g => `<tr><td><b>${g.zh}</b>${g.cn ? `<div class="muted" style="font-size:12px">陸譯：${g.cn}</div>` : ''}</td><td>${g.en}</td><td>${g.d}</td></tr>`).join('')}</table>`;
+    if (GUEST && total > rows.length) $('#gl', V).insertAdjacentHTML('beforeend', GUEST_NOTE(`預覽只列出前 ${rows.length} 個名詞（符合條件的共 ${total} 個），完整辭典登入後查看。`));
     typeset($('#gl', V));
   };
   $('#gs', V).oninput = e => draw(e.target.value.trim()); chips(); draw('');
@@ -1212,6 +1259,7 @@ async function loadFrontier() {
       mergeKB(r.kb || []);
     } else if (!L) FRONT.err = r && r.error === 'key' ? '研究前線金鑰尚未設定或已更換，請通知老師。' : '暫時讀不到研究前線（網路不穩？）';
   } else if (!L) FRONT.err = '找不到研究前線資料檔（frontier.enc.json），請通知老師。';
+  if (GUEST) { FRONT.cards = FRONT.cards.slice().sort((a, b) => String(b.date).localeCompare(String(a.date)) || String(b.id).localeCompare(String(a.id))).slice(0, 3); FRONT.jc = []; FRONT.comments = []; }
   if (FRONT.cards.some(c => c.mine)) checkBadges();
   if (curView === 'frontier') go('frontier');
   if (curView === 'chapter' && FRONT.papers.length) { const e = $('#litA'); if (e && window._curCh) e.innerHTML = litFor(window._curCh); }
@@ -1225,7 +1273,7 @@ function litFor(cid) {
   const star = new Set(cards.map(c => c.drive)); L.sort((a, b) => (star.has(b.id) ? 1 : 0) - (star.has(a.id) ? 1 : 0));
   return `<div class="card" style="border:2px solid #0ea5e9"><b>📚 實驗室文獻庫：和本關有關的論文 ${L.length} 篇</b>${cards.length ? `　⭐ 精讀卡 ${cards.length} 張` : ''}
     <div style="margin-top:6px">${L.slice(0, 5).map(p => `<div style="margin:3px 0;font-size:14px">• ${esc(p.t)} <span class="muted">${esc([p.j, p.y].filter(Boolean).join(' '))}</span></div>`).join('')}</div>
-    <button class="btn small ghost" style="margin-top:6px" onclick="go('frontier','C:${cid}')">在文獻索引中看全部 ${L.length} 篇 →</button></div>`;
+    ${GUEST ? '<div class="muted" style="font-size:13px;margin-top:4px">完整清單與 PDF 線上閱讀僅限實驗室成員。</div>' : `<button class="btn small ghost" style="margin-top:6px" onclick="go('frontier','C:${cid}')">在文獻索引中看全部 ${L.length} 篇 →</button>`}</div>`;
 }
 /* 雲端知識庫（專題比較卡、儀器、文獻用例）：以編號覆蓋或新增到內容檔的版本上 */
 function mergeKB(rows) {
@@ -1295,7 +1343,7 @@ function viewFrontier(V, openId) {
     <div id="jcA"></div>
     <div id="litIdx"></div>
     <div id="themesA"></div>
-    <div class="card"><h3 style="margin:0 0 6px">📚 研究前線卡庫（單篇）</h3><div id="fchips"></div>
+    <div class="card"><h3 style="margin:0 0 6px">📚 研究前線卡庫（單篇）</h3>${GUEST ? '<div class="muted" style="font-size:14px">預覽只顯示最新 3 張精讀卡；完整卡庫需登入。</div>' : ''}<div id="fchips"></div>
       <input class="search" id="fs" placeholder="搜尋標題、材料、關鍵字（例如 NiFe、STH、15N）…" style="margin-top:8px"></div>
     <div id="flist"></div>
     <details class="card" id="fsub"><summary><b>✍️ 投稿研究前線卡</b>（Journal Club 報告人請在會後投稿；老師審核通過後上線，可獲「文獻獵人」徽章）</summary><div id="fform"></div></details>`;
@@ -1321,7 +1369,8 @@ function viewFrontier(V, openId) {
   if (FRONT.papers.length) renderLitIndex($('#litIdx', V), pch);
   // ---- 專題比較卡 ----
   if (XC.themes.length) { const TA = $('#themesA', V); TA.insertAdjacentHTML('beforeend', `<div class="card" style="border:2px solid #6366f1"><h3 style="margin:0">🧭 專題比較卡</h3><div class="muted" style="font-size:14px">同一個研究問題的多篇論文放在一起比：問題出在哪個物理量、各家怎麼解、用什麼證據證明、還有什麼沒解決。單篇卡在下方卡庫。</div></div>`);
-    XC.themes.forEach(T => TA.appendChild(renderTheme(T, openId === T.id))); }
+    (GUEST ? XC.themes.slice(0, 1) : XC.themes).forEach(T => TA.appendChild(renderTheme(T, openId === T.id)));
+    if (GUEST && XC.themes.length > 1) TA.insertAdjacentHTML('beforeend', `<div class="muted" style="font-size:14px;margin:6px 4px">……還有 ${XC.themes.length - 1} 張專題比較卡，登入後可查看。</div>`); }
   // ---- 卡庫 ----
   const cnt = t => FRONT.cards.filter(c => c.topics.includes(t)).length;
   const chips = () => { $('#fchips', V).innerHTML = `<button class="btn small ${topic === 'all' ? '' : 'ghost'}" data-k="all" style="margin:2px">全部（${FRONT.cards.length}）</button>` +
@@ -1363,7 +1412,18 @@ function viewFrontier(V, openId) {
   };
 }
 
+function renderLitIndexGuest(box) {
+  const P = FRONT.papers.filter(p => !p.si);
+  const cnt = k => P.filter(p => p.tp.includes(k)).length;
+  box.innerHTML = `<div class="card" style="border:2px solid #0ea5e9"><h3 style="margin:0">📚 實驗室文獻索引（${P.length} 篇）</h3>
+    <div class="muted" style="font-size:14px">實驗室所有論文依研究主軸自動分類、連到對應的課程關卡，每週自動更新，並提供 PDF 線上閱讀。<b>完整索引、搜尋與線上閱讀僅限實驗室成員。</b></div>
+    <div style="margin-top:6px">${TOPIC_GROUPS.map(([g, ks]) => ks.filter(k => cnt(k)).map(k => `<span class="pill" style="margin:2px;display:inline-block">${TOPICS[k]}（${cnt(k)}）</span>`).join('')).join('')}</div>
+    <div class="muted" style="font-size:13px;margin-top:8px">最近收錄（範例）：</div>
+    ${P.filter(p => p.j && p.y && !p.unk).slice(0, 5).map(p => `<div style="border-top:1px solid var(--line);padding:5px 0;font-size:14px"><b>${esc(p.t)}</b> <span class="muted">${esc([p.j, p.y].filter(Boolean).join(' ・ '))}</span></div>`).join('')}
+    <div class="muted" style="font-size:13px;margin-top:4px">……其餘 ${P.length - 5} 篇需登入後查看。</div></div>`;
+}
 function renderLitIndex(box, pch) {
+  if (GUEST) return renderLitIndexGuest(box);
   const P = FRONT.papers, st = { tp: 'all', y: 'all', kw: '', si: false, star: false, ch: pch || 0, n: 30 };
   const starIds = new Set(FRONT.cards.filter(c => c.drive).map(c => c.drive));
   const years = [...new Set(P.map(p => p.y).filter(Boolean))].sort().reverse();
@@ -1658,6 +1718,7 @@ function instrGroups() {
   return G.filter(([, L]) => L.length);
 }
 function viewInstr(V, arg) {
+  if (arg && !guestInstrOK(arg)) { toast('👀 唯讀預覽：這個儀器登入後才能查看'); arg = null; }
   if (arg && XC.instr.find(x => x.id === arg)) return renderInstr(V, XC.instr.find(x => x.id === arg));
   const done = id => (S.instDone || {})[id];
   V.innerHTML = `<div class="card"><h2 style="margin:0">🔬 儀器寶鑑</h2>
@@ -1674,6 +1735,12 @@ function viewInstr(V, arg) {
   const mix = XC.mix || [], mq = $('#mixq', V);
   mix.forEach((q, j) => mq.appendChild(renderQ(q, 'IM:#' + j, { ch: 'I', onDone: () => { if (mix.every((x, i) => S.quiz['IM:#' + i] && S.quiz['IM:#' + i].ok) && !(S.instDone || {})._mix) { S.instDone = S.instDone || {}; S.instDone._mix = 1; save(); addXP(20, '完成儀器綜合挑戰'); } } })));
   if (!mix.length) mq.innerHTML = '<div class="muted">（題目準備中）</div>';
+  if (GUEST) {
+    $$('.icard', V).forEach(c => { const m = (c.getAttribute('onclick') || '').match(/go\('instr','([^']+)'\)/); if (m && !guestInstrOK(m[1])) { c.style.opacity = .4; c.style.filter = 'grayscale(1)'; c.onclick = e => { e.stopPropagation(); toast('👀 唯讀預覽：這個儀器登入後才能查看'); }; c.removeAttribute('onclick'); } });
+    $$('.mtx', V).forEach(t => { const w = t.closest('.card'); if (w) w.innerHTML = '<h3 style="margin:0 0 4px">🧩 性質 × 儀器對照表</h3>' + GUEST_NOTE('對照表登入後查看。'); });
+    mq.innerHTML = GUEST_NOTE('綜合挑戰登入後才能作答。');
+    V.insertAdjacentHTML('afterbegin', GUEST_NOTE(`預覽開放 3 個儀器的完整圖鑑（彩色卡片），其餘 ${XC.instr.length - 3} 個登入後查看。`));
+  }
 }
 function instrUses(I) {   // 專題卡證據鏈中標註此儀器的列 ＋ 雲端新增的用例
   const L = [];
@@ -1725,12 +1792,14 @@ function viewTools(V) {
   V.innerHTML = `<div class="card"><h2 style="margin:0">🧪 模擬實驗室</h2><div class="muted">拉動滑桿，親眼看公式在做什麼。每個工具第一次使用都有 XP。</div>
     <div style="margin-top:8px">${TOOLS.map(t => `<button class="btn ghost small" style="margin:3px" onclick="document.getElementById('tl_${t.id}').scrollIntoView({behavior:'smooth'})">${t.icon} ${t.name}</button>`).join('')}</div></div><div id="tls"></div>`;
   const T = $('#tls', V);
+  if (GUEST) T.insertAdjacentHTML('beforeend', GUEST_NOTE('預覽開放 2 個模擬工具可以實際拉動滑桿試玩，其餘工具登入後使用。'));
   let lastC = null;
   TOOLS.slice().sort((a, b) => ({ pv: 0, ec: 1, inst: 2 })[a.course || 'pv'] - ({ pv: 0, ec: 1, inst: 2 })[b.course || 'pv']).forEach(t => {
     const ck = t.course || 'pv';
     if (ck !== lastC) { lastC = ck; T.insertAdjacentHTML('beforeend', `<h2 style="margin:18px 4px 6px">${COURSES[ck] ? COURSES[ck].icon + ' ' + COURSES[ck].name : ck === 'inst' ? '🔬 儀器寶鑑' : ck}</h2>`); }
     const d = document.createElement('div'); d.className = 'card tool'; d.id = 'tl_' + t.id;
     d.innerHTML = `<h3 style="margin-top:0">${t.icon} ${t.name}</h3><div class="muted" style="font-size:14px">${t.desc}</div>`;
+    if (!guestToolOK(t)) { d.style.opacity = .45; d.insertAdjacentHTML('beforeend', '<div class="muted" style="margin-top:6px">🔒 登入後可使用</div>'); T.appendChild(d); return; }
     T.appendChild(d); t.build(d);
     d.addEventListener('input', () => { if (!S.tools[t.id]) { S.tools[t.id] = 1; save(); addXP(8, '使用工具：' + t.name); Rec.send('tool', { item: t.id }); } }, { once: true });
   });
@@ -2282,6 +2351,11 @@ function showLogin() {
 }
 window.addEventListener('beforeunload', () => { if (S) { leaveChapter(); Rec.flush(true); } });
 (async function boot() {
+  const vm = location.hash.match(/[#&]v=([^&]+)/);
+  if (vm) {
+    try { loadContent(await decryptView(decodeURIComponent(vm[1]))); return startGuest(); }
+    catch (e) { $('#errTicket').textContent = '預覽連結已失效（老師可能更換了通行碼或預覽碼）。'; return; }
+  }
   // QR code 入場券：網址 #t=通行碼
   const m = location.hash.match(/[#&]t=([^&]+)/);
   let pass = m ? decodeURIComponent(m[1]) : LS.get(KEYP + 'ticket', null);

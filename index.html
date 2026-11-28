@@ -276,7 +276,7 @@ table.data th{background:#f8f5ec}
 <div id="modal" class="hidden"><div class="box" id="modalBox"></div></div>
 
 <script src="config.js"></script>
-<script src="content.enc.js?v=4961b04dac"></script>
+<script src="content.enc.js?v=5e8a40bd80"></script>
 <script>
 /* 設定在 config.js（老師可直接在 GitHub 網頁上編輯）；加密內容在 content.enc.js */
 const CONFIG = Object.assign({ API: '', ROSTER: false, FREE_ROAM: false, BOSS_REQ: 0.6 }, window.PVQ_CONFIG || {});
@@ -690,7 +690,7 @@ function chStats(c) {
 let curView = 'map', curCh = null, enterT = 0;
 function go(v, arg) {
   leaveChapter();
-  curView = v;
+  curView = v; window._curArg = arg;
   $$('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.v === v || (v === 'chapter' && b.dataset.v === 'map')));
   const V = $('#view'); V.innerHTML = '';
   ({ placement: viewPlacement, frontier: viewFrontier, instr: viewInstr, arena: viewArena, map: viewMap, chapter: viewChapter, tools: viewTools, formulas: viewFormulas, glossary: viewGlossary, wrong: viewWrong, hall: viewHall, me: viewMe })[v](V, arg);
@@ -1227,7 +1227,7 @@ function viewPlacement(V, ck) {
 }
 
 /* ---------------- 📡 研究前線（文獻卡 + Journal Club） ---------------- */
-const FRONT = { cards: [], jc: [], comments: [], papers: [], ideas: [], fcards: [], upd: '', loaded: false, err: '' };
+const FRONT = { cards: [], jc: [], comments: [], papers: [], ideas: [], fcards: [], finst: {}, upd: '', loaded: false, err: '' };
 const TOPICS = { BATT: '🔋 電池與儲能', SENSE: '🔬 感測（SERS／氣體／生物晶片）', LED: '💡 發光元件（LED／量子點）', PSC: '🧱 鈣鈦礦電池：效率與界面', PSCSTAB: '🛡️ 鈣鈦礦穩定性', TANDEM: '🥞 疊層電池', MODULE: '🧩 大面積塗佈與模組', FLEX: '🪶 軟性與透明電極（ITO-free）', SOLAR: '☀️ 太陽能驅動化學', HER: '💧 產氫 HER', OER: '🫧 產氧 OER', OWS: '⚡ 全水分解', NH3: '🌱 產氨', CO2: '🍃 CO₂ 捕捉／還原', OPV: '🌈 有機太陽電池 OPV', OPD: '📷 有機光偵測器 OPD', OSTAB: '🛡️ 有機元件穩定性與製程', CPOLY: '〰️ 共軛高分子合成與設計', GEL: '💧 水膠與生醫高分子', METHOD: '📏 方法與規範' };
 const TOPIC_GROUPS = [['☀️ 太陽電池', ['PSC', 'PSCSTAB', 'TANDEM', 'MODULE', 'FLEX']], ['⚗️ 電化學與太陽燃料', ['SOLAR', 'HER', 'OER', 'OWS', 'NH3', 'CO2', 'BATT']], ['🌈 有機光電', ['OPV', 'OPD', 'OSTAB']], ['🔗 高分子與生醫材料', ['CPOLY', 'GEL']], ['📏 感測與共通', ['SENSE', 'LED', 'METHOD']]];
 const cardDone = cd => { const ex = parseJSON(cd.ex, []); return ex.length ? ex.every((q, j) => S.quiz['F:' + cd.id + '#' + j] && S.quiz['F:' + cd.id + '#' + j].ok) : !!(S.fopen || {})[cd.id]; };
@@ -1253,7 +1253,7 @@ async function loadFrontierFile() {
 }
 async function loadFrontier() {
   const L = await loadFrontierFile();
-  if (L) { FRONT.papers = L.papers || []; FRONT.ideas = GUEST ? [] : (L.ideas || []); FRONT.fcards = GUEST ? [] : (L.fcards || []); FRONT.upd = L.upd || ''; FRONT.cards = (L.cards || []).map(normCard); FRONT.jc = L.jc || []; FRONT.loaded = true; FRONT.err = ''; mergeKB(L.kb || []); }
+  if (L) { FRONT.papers = L.papers || []; FRONT.ideas = GUEST ? [] : (L.ideas || []); FRONT.fcards = GUEST ? [] : (L.fcards || []); FRONT.finst = GUEST ? {} : (L.finst || {}); FRONT.upd = L.upd || ''; FRONT.cards = (L.cards || []).map(normCard); FRONT.jc = L.jc || []; FRONT.loaded = true; FRONT.err = ''; mergeKB(L.kb || []); }
   if (CONFIG.API) {
     const key = await frontierKey();
     let r = await apiGet({ action: 'frontier', key, sid: S.sid });
@@ -1272,7 +1272,7 @@ async function loadFrontier() {
   if (FRONT.cards.some(c => c.mine)) checkBadges();
   if (curView === 'frontier') go('frontier');
   if (curView === 'chapter' && FRONT.papers.length) { const e = $('#litA'); if (e && window._curCh) e.innerHTML = litFor(window._curCh); }
-  if (curView === 'instr' && ((L && L.kb) || []).length) go('instr');
+  if (curView === 'instr' && (((L && L.kb) || []).length || (L && L.finst && !GUEST))) go('instr', window._curArg);
 }
 const driveUrl = id => 'https://drive.google.com/file/d/' + encodeURIComponent(id) + '/view';
 function litFor(cid) {
@@ -1476,7 +1476,7 @@ function renderFoem(box) {
       d.innerHTML = `<summary style="cursor:pointer"><b style="font-size:16px">${ln}</b> <span class="muted">${L.length} 篇・${Math.min(...L.map(p => +p.y || 9999))}–${Math.max(...L.map(p => +p.y || 0))}</span></summary>
         ${TH.length ? `<div style="margin:8px 0;font-size:13px"><b>🧭 對照研究前線：</b>${TH.map(T => `<button class="btn small ghost" style="margin:2px" onclick="FSEC='themes';FCAT='all';go('frontier','${T.id}')">${T.id} ${esc(T.title.slice(0, 22))}…</button>`).join('')}</div>` : ''}
         ${[...new Set(L.map(p => p.y))].map(y => `<div style="display:flex;gap:10px;margin-top:8px"><div style="min-width:46px;font-weight:800;color:#b45309">${y || '—'}</div><div style="flex:1;border-left:3px solid #f59e0b;padding-left:10px">${L.filter(p => p.y === y).map(p => { const fc = FRONT.fcards.find(c => c.drive === p.id);
-          return `<div style="margin:4px 0">${fc ? '⭐ ' : ''}<b style="font-size:14px">${esc(p.t)}</b> <span class="muted" style="font-size:12px">${esc(p.j || '')}</span> <a href="${driveUrl(p.id)}" target="_blank" rel="noopener" style="font-size:12px">PDF</a>${fc ? `<div style="font-size:13px;background:#fffbeb;border-radius:8px;padding:6px 8px;margin-top:3px">${fc.html || ''}</div>` : ''}</div>`; }).join('')}</div></div>`).join('')}`;
+          return `<div style="margin:4px 0">${fc ? '⭐ ' : ''}<b style="font-size:14px">${esc(p.t)}</b> <span class="muted" style="font-size:12px">${esc(p.j || '')}</span> <a href="${driveUrl(p.id)}" target="_blank" rel="noopener" style="font-size:12px">PDF</a>${foemInstFor(p.id).filter(k => XC.instr.some(I => I.id === k)).length ? `<div style="margin-top:2px">${foemInstFor(p.id).filter(k => XC.instr.some(I => I.id === k)).map(instrChip).join('')}</div>` : ''}${fc ? `<div style="font-size:13px;background:#fffbeb;border-radius:8px;padding:6px 8px;margin-top:3px">${fc.html || ''}</div>` : ''}</div>`; }).join('')}</div></div>`).join('')}`;
       d.ontoggle = () => { if (d.open) open = ln; };
       LB.appendChild(d); });
     $$('tr[data-l]', box).forEach(tr => tr.onclick = () => { open = tr.dataset.l; draw(); const t = $$('#foemLines details', box).find(x => x.dataset.l === open); if (t) t.scrollIntoView({ behavior: 'smooth' }); });
@@ -1786,6 +1786,24 @@ function drawFigs(root, figs) {
   requestAnimationFrame(() => (figs || []).forEach((f, j) => { if (!f.plot) return; const cv = $(`figure[data-j="${j}"] canvas`, root); if (cv && cv.clientWidth) plot(cv, buildPlot(f.plot)); }));
 }
 function figsHTML(figs) { return (figs || []).map((f, j) => `<figure class="fig" data-j="${j}">${f.svg ? f.svg : `<canvas class="fplot" style="height:${f.h || 240}px"></canvas>`}${f.cap ? `<figcaption>${f.cap}</figcaption>` : ''}</figure>`).join(''); }
+/* FOEM 實驗室論文中的儀器使用經驗（由 frontier.enc.json 的 finst 提供；訪客模式為空） */
+function foemInstPapers(id) { const M = (FRONT.finst || {}).map || {}; return FRONT.papers.filter(p => p.foem && !p.si && (M[p.id] || []).includes(id)).sort((a, b) => (+b.y || 0) - (+a.y || 0)); }
+function foemInstFor(pid) { return (((FRONT.finst || {}).map || {})[pid] || []); }
+const FOEM_INST_NOTE = '依實驗室論文的實驗方法段自動整理，代表「我們的論文用過這項量測或製程」。部分量測可能是由合作單位或國家同步輻射中心完成，實際能用哪一台、怎麼預約，請問老師或學長姐。';
+function foemPaperLi(p) { return `<li style="margin:3px 0"><b>${p.y || '—'}</b>・${esc(p.t)} <span class="muted" style="font-size:12px">${esc(p.j || '')}</span> <a href="${driveUrl(p.id)}" target="_blank" rel="noopener" style="font-size:12px">PDF</a></li>`; }
+function foemInstCard() {
+  const F = FRONT.finst || {}; if (!F.map || GUEST) return '';
+  const nP = FRONT.papers.filter(p => p.foem && !p.si).length;
+  const meas = XC.instr.map(I => [I, foemInstPapers(I.id).length]).filter(x => x[1]).sort((a, b) => b[1] - a[1]);
+  const ex = Object.entries(F.extra || {}).map(([k, n]) => [k, n, foemInstPapers(k)]).filter(x => x[2].length).sort((a, b) => b[2].length - a[2].length);
+  const mdl = k => ((F.models || {})[k] || []).length ? `<div class="muted" style="font-size:12.5px">論文中記載的機型：${F.models[k].map(esc).join('、')}</div>` : '';
+  return `<div class="card" style="border:2px solid #f59e0b"><h3 style="margin:0">🏠 FOEM 實驗室的儀器與製程經驗</h3>
+    <div class="muted" style="font-size:13px">從實驗室 ${nP} 篇論文整理：哪些量測與製程我們已經有使用經驗、用在哪幾篇。想做某個實驗前，先看學長姐的論文怎麼量、用哪台機器。${FOEM_INST_NOTE}</div>
+    <div style="margin-top:8px;font-weight:800;color:#334155">🔬 量測儀器（點進去看原理與實驗室用例）</div>
+    <div style="margin-top:4px">${meas.map(([I, n]) => `<a class="pill" style="cursor:pointer;background:#fef3c7;color:#92400e;margin:2px" onclick="go('instr','${I.id}')">${I.icon} ${esc(I.short || I.id)} <b>${n}</b></a>`).join('')}</div>
+    ${ex.length ? `<div style="margin-top:10px;font-weight:800;color:#334155">🛠️ 製程與其他設備（儀器寶鑑尚未收錄，點開看用過的論文）</div>
+    ${ex.map(([k, n, L]) => `<details style="margin:4px 0"><summary style="cursor:pointer">${esc(n)} <span class="pill" style="background:#fef3c7;color:#92400e">${L.length} 篇</span></summary>${mdl(k)}<ul style="margin:4px 0 4px 18px;font-size:13px">${L.map(foemPaperLi).join('')}</ul></details>`).join('')}` : ''}</div>`;
+}
 const INSTR_GROUPS = [['☀️ 元件與光電', ['JV', 'EQE', 'PL', 'UVVIS', 'SCLC']], ['🔬 結構與表面', ['XRD', 'SEM', 'XPS', 'RAMAN', 'XAS']], ['⚗️ 電化學', ['CV', 'EIS', 'RDE']], ['🧪 產物與組成定量', ['GC', 'NMR', 'INDO', 'ICP']], ['🌈 有機光電', ['GIWAXS', 'AFM', 'NOISE', 'TPV']], ['🔗 高分子鑑定', ['GPC', 'DSC', 'TGA', 'FTIR']], ['🧬 生醫材料', ['DLS', 'RHEO', 'SWELL', 'WCA', 'QCMD', 'HPLC', 'MTT', 'FLUO']]];
 function instrGroups() {
   const used = new Set(), G = INSTR_GROUPS.map(([g, ids]) => [g, ids.map(id => XC.instr.find(I => I.id === id)).filter(Boolean)]);
@@ -1800,7 +1818,8 @@ function viewInstr(V, arg) {
   V.innerHTML = `<div class="card"><h2 style="margin:0">🔬 儀器寶鑑</h2>
     <div class="muted">論文的每一個結論都建立在量測上。這裡把文獻中用到的儀器整理成圖鑑：先懂原理與公式，再知道它能測什麼、為什麼能測、限制在哪，最後用文獻上的數據練習「怎麼看圖、怎麼下結論」。新文獻用到新儀器時，會自動加進來。</div>
     <div style="margin-top:8px;font-size:14px">🎮 練習方式：<b>🔍 數據偵探</b>（看圖下結論）・<b>🎯 選對儀器</b>（研究問題該用哪些量測）・<b>🕵️ 找碴</b>（找出論述的漏洞）・<b>🧪 動手模擬</b></div></div>
-    <div class="card"><h3 style="margin:0 0 8px">📚 儀器圖鑑</h3>${instrGroups().map(([g, L]) => `<div style="margin:10px 0 6px;font-weight:800;color:#334155">${g}</div><div class="igrid">${L.map(I => `<div class="icard" onclick="go('instr','${I.id}')"><div class="ic">${I.icon}</div><b>${esc(I.name)}</b><div class="muted">${I.oneline || ''}</div><div style="margin-top:6px">${(I.cat || []).map(c => `<span class="pill gray">${c}</span>`).join('')}${done(I.id) ? '<span class="pill green">已通關</span>' : ''}${isRecent(I.added) ? '<span class="pill red">🆕 新收錄</span>' : ''}${instrUses(I).length ? `<span class="pill">📚 ${instrUses(I).length} 篇用例</span>` : ''}</div></div>`).join('')}</div>`).join('')}</div>
+    <div class="card"><h3 style="margin:0 0 8px">📚 儀器圖鑑</h3>${instrGroups().map(([g, L]) => `<div style="margin:10px 0 6px;font-weight:800;color:#334155">${g}</div><div class="igrid">${L.map(I => `<div class="icard" onclick="go('instr','${I.id}')"><div class="ic">${I.icon}</div><b>${esc(I.name)}</b><div class="muted">${I.oneline || ''}</div><div style="margin-top:6px">${(I.cat || []).map(c => `<span class="pill gray">${c}</span>`).join('')}${done(I.id) ? '<span class="pill green">已通關</span>' : ''}${isRecent(I.added) ? '<span class="pill red">🆕 新收錄</span>' : ''}${instrUses(I).length ? `<span class="pill">📚 ${instrUses(I).length} 篇用例</span>` : ''}${foemInstPapers(I.id).length ? `<span class="pill" style="background:#fef3c7;color:#92400e">🏠 FOEM ${foemInstPapers(I.id).length} 篇</span>` : ''}</div></div>`).join('')}</div>`).join('')}</div>
+    ${foemInstCard()}
     <div class="card"><h3 style="margin:0 0 4px">🧩 性質 × 儀器對照表</h3><div class="muted" style="font-size:13px">● 主要用途　○ 間接或輔助。點格子看「為什麼能測、限制是什麼」；點儀器名稱進入圖鑑。</div>
       <div class="tblwrap" style="margin-top:6px"><table class="mtx"><tr><th>想知道的性質</th>${instrGroups().flatMap(x => x[1]).map(I => `<th class="ih" onclick="go('instr','${I.id}')" title="${esc(I.name)}">${I.icon}<br>${esc(I.mcol || String(I.short || I.id).split('／')[0].replace('原位 ', '').replace('靛酚藍比色', '比色').replace('¹H ', '').replace('-MS', ''))}</th>`).join('')}</tr>
       ${XC.props.map(p => `<tr><td>${p.n}</td>${instrGroups().flatMap(x => x[1]).map(I => { const m = (I.measures || []).find(x => x.p === p.id); return m ? `<td class="${m.lv === 'o' ? 'o' : 'y'}" data-i="${I.id}" data-p="${p.id}">${m.lv === 'o' ? '○' : '●'}</td>` : '<td></td>'; }).join('')}</tr>`).join('')}</table></div>
@@ -1845,6 +1864,12 @@ function renderInstr(V, I) {
       ${instrUses(I).map(u => `<details class="exbox"><summary><b>${u.t}</b> <span class="muted" style="font-size:12.5px">${u.src || ''}</span>${isRecent(u.date) ? ' <span class="pill red">本週新增</span>' : ''}</summary>
         <div class="read3"><div class="r1"><b>① 量到什麼／用來證明</b><br>${u.seen || ''}</div><div class="r2"><b>② 作者解讀</b><br>${u.claim || ''}</div><div class="r3"><b>③ 還缺什麼證據</b><br>${u.gap || ''}</div></div>
         ${u.theme ? `<div style="font-size:13px">↪ 出自專題比較卡：<a href="javascript:void(0)" onclick="go('frontier','${u.theme}')">${esc((XC.themes.find(T => T.id === u.theme) || {}).title || u.theme)}</a></div>` : ''}</details>`).join('')}</div>` : ''}
+    ${(() => { const L = foemInstPapers(I.id); if (!L.length) return ''; const M = ((FRONT.finst || {}).models || {})[I.id] || []; const ys = L.map(p => +p.y).filter(Boolean);
+      return `<div class="card" style="border:2px solid #f59e0b"><h3 style="margin:0">🏠 FOEM 實驗室使用經驗（${L.length} 篇${ys.length ? `，${Math.min(...ys)}–${Math.max(...ys)}` : ''}）</h3>
+      <div class="muted" style="font-size:13px">實驗室自己的論文用這項量測做了什麼？讀之前可以先翻他們的實驗方法段，看量測條件與樣品怎麼準備。${FOEM_INST_NOTE}</div>
+      ${M.length ? `<div style="margin-top:6px;font-size:14px">🧾 論文中記載的機型：${M.map(esc).join('、')}</div>` : ''}
+      <ul style="margin:6px 0 0 18px;font-size:13.5px">${L.map(foemPaperLi).join('')}</ul>
+      <div style="margin-top:6px"><button class="btn small ghost" onclick="FSEC='foem';go('frontier')">🏠 看 FOEM 研究脈絡</button></div></div>`; })()}
     <div class="card"><h3 style="margin:0 0 6px">🔗 相關</h3>${(I.concepts || []).length ? `<div>課程觀念：${I.concepts.map(conceptChip).join('')}</div>` : ''}${ths.length ? `<div style="margin-top:6px">使用這台儀器的專題比較卡：${ths.map(T => `<a href="javascript:void(0)" onclick="go('frontier','${T.id}')">${esc(T.title)}</a>`).join('、')}</div>` : ''}</div>`;
   if (!(S.instSeen || {})[I.id]) { S.instSeen = S.instSeen || {}; S.instSeen[I.id] = 1; save(); addXP(5, '閱讀儀器：' + (I.short || I.id)); Rec.send('instr', { item: I.id }); }
   drawFigs(V, I.figs);

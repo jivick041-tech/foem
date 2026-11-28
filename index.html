@@ -276,7 +276,7 @@ table.data th{background:#f8f5ec}
 <div id="modal" class="hidden"><div class="box" id="modalBox"></div></div>
 
 <script src="config.js"></script>
-<script src="content.enc.js?v=3ac49fcdaf"></script>
+<script src="content.enc.js?v=4961b04dac"></script>
 <script>
 /* 設定在 config.js（老師可直接在 GitHub 網頁上編輯）；加密內容在 content.enc.js */
 const CONFIG = Object.assign({ API: '', ROSTER: false, FREE_ROAM: false, BOSS_REQ: 0.6 }, window.PVQ_CONFIG || {});
@@ -1227,9 +1227,9 @@ function viewPlacement(V, ck) {
 }
 
 /* ---------------- 📡 研究前線（文獻卡 + Journal Club） ---------------- */
-const FRONT = { cards: [], jc: [], comments: [], papers: [], upd: '', loaded: false, err: '' };
-const TOPICS = { PSC: '🧱 鈣鈦礦電池：效率與界面', PSCSTAB: '🛡️ 鈣鈦礦穩定性', TANDEM: '🥞 疊層電池', MODULE: '🧩 大面積塗佈與模組', FLEX: '🪶 軟性與透明電極（ITO-free）', SOLAR: '☀️ 太陽能驅動化學', HER: '💧 產氫 HER', OER: '🫧 產氧 OER', OWS: '⚡ 全水分解', NH3: '🌱 產氨', CO2: '🍃 CO₂ 捕捉／還原', OPV: '🌈 有機太陽電池 OPV', OPD: '📷 有機光偵測器 OPD', OSTAB: '🛡️ 有機元件穩定性與製程', CPOLY: '〰️ 共軛高分子合成與設計', GEL: '💧 水膠與生醫高分子', METHOD: '📏 方法與規範' };
-const TOPIC_GROUPS = [['☀️ 太陽電池', ['PSC', 'PSCSTAB', 'TANDEM', 'MODULE', 'FLEX']], ['⚗️ 電化學與太陽燃料', ['SOLAR', 'HER', 'OER', 'OWS', 'NH3', 'CO2']], ['🌈 有機光電', ['OPV', 'OPD', 'OSTAB']], ['🔗 高分子與生醫材料', ['CPOLY', 'GEL']], ['📏 共通', ['METHOD']]];
+const FRONT = { cards: [], jc: [], comments: [], papers: [], ideas: [], fcards: [], upd: '', loaded: false, err: '' };
+const TOPICS = { BATT: '🔋 電池與儲能', SENSE: '🔬 感測（SERS／氣體／生物晶片）', LED: '💡 發光元件（LED／量子點）', PSC: '🧱 鈣鈦礦電池：效率與界面', PSCSTAB: '🛡️ 鈣鈦礦穩定性', TANDEM: '🥞 疊層電池', MODULE: '🧩 大面積塗佈與模組', FLEX: '🪶 軟性與透明電極（ITO-free）', SOLAR: '☀️ 太陽能驅動化學', HER: '💧 產氫 HER', OER: '🫧 產氧 OER', OWS: '⚡ 全水分解', NH3: '🌱 產氨', CO2: '🍃 CO₂ 捕捉／還原', OPV: '🌈 有機太陽電池 OPV', OPD: '📷 有機光偵測器 OPD', OSTAB: '🛡️ 有機元件穩定性與製程', CPOLY: '〰️ 共軛高分子合成與設計', GEL: '💧 水膠與生醫高分子', METHOD: '📏 方法與規範' };
+const TOPIC_GROUPS = [['☀️ 太陽電池', ['PSC', 'PSCSTAB', 'TANDEM', 'MODULE', 'FLEX']], ['⚗️ 電化學與太陽燃料', ['SOLAR', 'HER', 'OER', 'OWS', 'NH3', 'CO2', 'BATT']], ['🌈 有機光電', ['OPV', 'OPD', 'OSTAB']], ['🔗 高分子與生醫材料', ['CPOLY', 'GEL']], ['📏 感測與共通', ['SENSE', 'LED', 'METHOD']]];
 const cardDone = cd => { const ex = parseJSON(cd.ex, []); return ex.length ? ex.every((q, j) => S.quiz['F:' + cd.id + '#' + j] && S.quiz['F:' + cd.id + '#' + j].ok) : !!(S.fopen || {})[cd.id]; };
 function checkTrack(t) {
   const L = FRONT.cards.filter(c => c.topics.includes(t)); S.tracks = S.tracks || {};
@@ -1253,7 +1253,7 @@ async function loadFrontierFile() {
 }
 async function loadFrontier() {
   const L = await loadFrontierFile();
-  if (L) { FRONT.papers = L.papers || []; FRONT.upd = L.upd || ''; FRONT.cards = (L.cards || []).map(normCard); FRONT.jc = L.jc || []; FRONT.loaded = true; FRONT.err = ''; mergeKB(L.kb || []); }
+  if (L) { FRONT.papers = L.papers || []; FRONT.ideas = GUEST ? [] : (L.ideas || []); FRONT.fcards = GUEST ? [] : (L.fcards || []); FRONT.upd = L.upd || ''; FRONT.cards = (L.cards || []).map(normCard); FRONT.jc = L.jc || []; FRONT.loaded = true; FRONT.err = ''; mergeKB(L.kb || []); }
   if (CONFIG.API) {
     const key = await frontierKey();
     let r = await apiGet({ action: 'frontier', key, sid: S.sid });
@@ -1268,7 +1268,7 @@ async function loadFrontier() {
       mergeKB(r.kb || []);
     } else if (!L) FRONT.err = r && r.error === 'key' ? '研究前線金鑰尚未設定或已更換，請通知老師。' : '暫時讀不到研究前線（網路不穩？）';
   } else if (!L) FRONT.err = '找不到研究前線資料檔（frontier.enc.json），請通知老師。';
-  if (GUEST) { FRONT.cards = FRONT.cards.slice().sort((a, b) => String(b.date).localeCompare(String(a.date)) || String(b.id).localeCompare(String(a.id))).slice(0, 3); FRONT.jc = []; FRONT.comments = []; }
+  if (GUEST) { FRONT.papers = FRONT.papers.filter(p => !p.foem); FRONT.cards = FRONT.cards.slice().sort((a, b) => String(b.date).localeCompare(String(a.date)) || String(b.id).localeCompare(String(a.id))).slice(0, 3); FRONT.jc = []; FRONT.comments = []; }
   if (FRONT.cards.some(c => c.mine)) checkBadges();
   if (curView === 'frontier') go('frontier');
   if (curView === 'chapter' && FRONT.papers.length) { const e = $('#litA'); if (e && window._curCh) e.innerHTML = litFor(window._curCh); }
@@ -1343,7 +1343,7 @@ function renderFrontCard(cd, open) {
 let FCAT = 'all', FSEC = 'themes';
 const catKeys = () => FCAT === 'all' ? null : (TOPIC_GROUPS.find(g => g[0] === FCAT) || [0, []])[1];
 const inCat = tps => { const K = catKeys(); return !K || (tps || []).some(t => K.includes(t)); };
-const primaryCat = tps => { for (const t of (tps || [])) { const g = TOPIC_GROUPS.find(g => g[1].includes(t)); if (g) return g[0]; } return '📏 共通'; };
+const primaryCat = tps => { for (const t of (tps || [])) { const g = TOPIC_GROUPS.find(g => g[1].includes(t)); if (g) return g[0]; } return '📏 感測與共通'; };
 function viewFrontier(V, openId) {
   let topic = 'all';
   let pch = 0;
@@ -1358,6 +1358,7 @@ function viewFrontier(V, openId) {
     <div id="jcA"></div>
     <div class="card" id="fnav" style="position:sticky;top:96px;z-index:5;padding:10px 14px"></div>
     <div id="litIdx" class="fsec" data-s="lit"></div>
+    <div id="foemA" class="fsec" data-s="foem"></div>
     <div id="themesA" class="fsec" data-s="themes"></div>
     <div class="fsec" data-s="cards">
     <div class="card"><h3 style="margin:0 0 6px">📚 研究前線卡庫（單篇）</h3>${GUEST ? '<div class="muted" style="font-size:14px">預覽只顯示最新 3 張精讀卡；完整卡庫需登入。</div>' : ''}<div id="fchips"></div>
@@ -1389,12 +1390,13 @@ function viewFrontier(V, openId) {
   $('#fnav', V).innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center"><b style="font-size:14px;margin-right:4px">領域</b>
       <button class="btn small ${FCAT === 'all' ? '' : 'ghost'}" data-c="all">全部</button>${TOPIC_GROUPS.map(g => `<button class="btn small ${FCAT === g[0] ? '' : 'ghost'}" data-c="${g[0]}">${g[0]}<span style="opacity:.6;font-size:12px"> ${catN(g)}</span></button>`).join('')}</div>
     <div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin-top:6px"><b style="font-size:14px;margin-right:4px">內容</b>
-      ${[['themes', '🧭 專題比較', nTh], ['cards', '📚 精讀卡', nCd], ['lit', '🗂️ 文獻索引', nLp]].map(([k, n, c]) => `<button class="btn small ${FSEC === k ? '' : 'ghost'}" data-s="${k}">${n}（${c}）</button>`).join('')}</div>`;
+      ${[['themes', '🧭 專題比較', nTh], ['cards', '📚 精讀卡', nCd], ['lit', '🗂️ 文獻索引', nLp]].concat(GUEST ? [] : [['foem', '🏠 FOEM 研究脈絡', FRONT.papers.filter(p => p.foem).length]]).map(([k, n, c]) => `<button class="btn small ${FSEC === k ? '' : 'ghost'}" data-s="${k}">${n}（${c}）</button>`).join('')}</div>`;
   $$('#fnav button[data-c]', V).forEach(b => b.onclick = () => { FCAT = b.dataset.c; go('frontier'); });
   $$('#fnav button[data-s]', V).forEach(b => b.onclick = () => { FSEC = b.dataset.s; go('frontier'); });
   $$('.fsec', V).forEach(e => e.style.display = e.dataset.s === FSEC ? '' : 'none');
   // ---- 實驗室文獻索引 ----
   if (FRONT.papers.length) renderLitIndex($('#litIdx', V), pch);
+  if (!GUEST && FSEC === 'foem') renderFoem($('#foemA', V));
   // ---- 專題比較卡 ----
   if (XC.themes.length) { const TA = $('#themesA', V); TA.insertAdjacentHTML('beforeend', `<div class="card" style="border:2px solid #6366f1"><h3 style="margin:0">🧭 專題比較卡</h3><div class="muted" style="font-size:14px">同一個研究問題的多篇論文放在一起比：問題出在哪個物理量、各家怎麼解、用什麼證據證明、還有什麼沒解決。單篇卡在下方卡庫。</div></div>`);
     const TH = (GUEST ? XC.themes.slice(0, 1) : XC.themes).filter(T => inCat(T.topics));
@@ -1444,6 +1446,48 @@ function viewFrontier(V, openId) {
   };
 }
 
+const FOEM_LINES = [
+  ['☀️ 鈣鈦礦太陽電池與可放大製程', ['PSC', 'PSCSTAB', 'TANDEM', 'MODULE', 'FLEX']],
+  ['🌈 有機光電：OPV 與 OPD', ['OPV', 'OPD', 'OSTAB']],
+  ['⚗️ 太陽燃料、電化學與儲能', ['SOLAR', 'HER', 'OER', 'OWS', 'NH3', 'CO2', 'BATT']],
+  ['💡 發光材料與量子點', ['LED']],
+  ['🔬 感測：SERS、氣體與生物晶片', ['SENSE']],
+  ['🧬 生醫高分子、纖維與水膠', ['GEL', 'CPOLY']]];
+const FOEM_PRI = ['SOLAR', 'HER', 'OER', 'OWS', 'NH3', 'CO2', 'BATT', 'SENSE', 'GEL', 'LED', 'OPD', 'OPV', 'OSTAB', 'PSC', 'MODULE', 'FLEX', 'TANDEM', 'PSCSTAB', 'CPOLY'];
+const foemLine = p => { const k = FOEM_PRI.find(t => p.tp.includes(t)); const L = k && FOEM_LINES.find(l => l[1].includes(k)); return L ? L[0] : '🧪 其他材料研究'; };
+function renderFoem(box) {
+  const P = FRONT.papers.filter(p => p.foem && !p.si);
+  const lines = FOEM_LINES.map(l => l[0]).concat(['🧪 其他材料研究']);
+  const yrs = P.map(p => +p.y).filter(Boolean);
+  let open = null;
+  const draw = () => {
+    box.innerHTML = `<div class="card" style="border:2px solid #f59e0b"><h3 style="margin:0">🏠 FOEM 研究脈絡</h3>
+      <div class="muted" style="font-size:14px">實驗室 ${Math.min(...yrs)}–${Math.max(...yrs)} 年發表的 ${P.length} 篇論文，依研究主軸排成時間線。點主軸看每一年做了什麼，並對照研究前線的專題比較卡：我們走到哪裡、外面走到哪裡、下一步可以往哪裡走。</div>
+      <div style="margin-top:8px;overflow-x:auto"><table style="border-collapse:collapse;font-size:13px;min-width:560px"><tr><th style="text-align:left;padding:3px 6px">研究主軸</th>${[...new Set(yrs)].sort().map(y => `<th style="padding:3px 4px">${y}</th>`).join('')}<th>合計</th></tr>
+      ${lines.map(ln => { const L = P.filter(p => foemLine(p) === ln); if (!L.length) return ''; return `<tr style="border-top:1px solid var(--line);cursor:pointer" data-l="${esc(ln)}"><td style="padding:4px 6px;white-space:nowrap"><b>${ln}</b></td>${[...new Set(yrs)].sort().map(y => { const n = L.filter(p => +p.y === y).length; return `<td style="text-align:center;padding:3px">${n ? `<span style="display:inline-block;min-width:22px;border-radius:6px;background:rgba(245,158,11,${0.15 + Math.min(n, 6) * 0.13});font-weight:700">${n}</span>` : ''}</td>`; }).join('')}<td style="text-align:center"><b>${L.length}</b></td></tr>`; }).join('')}</table></div>
+      <div class="muted" style="font-size:12px;margin-top:4px">點任一列展開該主軸的論文時間線。</div></div>
+    ${FRONT.ideas.length ? `<div class="card" style="border:2px dashed #8b5cf6"><h3 style="margin:0 0 6px">💡 腦力激盪：可以往哪裡走？（${FRONT.ideas.length}）</h3><div class="muted" style="font-size:13px;margin-bottom:6px">以下是由「實驗室已有的能力」×「研究前線的缺口」交叉提出的討論用構想，不是結論，歡迎在 group meeting 挑戰它。</div>${FRONT.ideas.map(renderIdea).join('')}</div>` : ''}
+    <div id="foemLines"></div>`;
+    const LB = $('#foemLines', box);
+    lines.forEach(ln => { const L = P.filter(p => foemLine(p) === ln).sort((a, b) => (+b.y || 0) - (+a.y || 0)); if (!L.length) return;
+      const keys = (FOEM_LINES.find(l => l[0] === ln) || [0, []])[1];
+      const TH = XC.themes.filter(T => (T.topics || []).some(t => keys.includes(t)));
+      const d = document.createElement('details'); d.className = 'card'; d.dataset.l = ln; if (open === ln) d.open = true;
+      d.innerHTML = `<summary style="cursor:pointer"><b style="font-size:16px">${ln}</b> <span class="muted">${L.length} 篇・${Math.min(...L.map(p => +p.y || 9999))}–${Math.max(...L.map(p => +p.y || 0))}</span></summary>
+        ${TH.length ? `<div style="margin:8px 0;font-size:13px"><b>🧭 對照研究前線：</b>${TH.map(T => `<button class="btn small ghost" style="margin:2px" onclick="FSEC='themes';FCAT='all';go('frontier','${T.id}')">${T.id} ${esc(T.title.slice(0, 22))}…</button>`).join('')}</div>` : ''}
+        ${[...new Set(L.map(p => p.y))].map(y => `<div style="display:flex;gap:10px;margin-top:8px"><div style="min-width:46px;font-weight:800;color:#b45309">${y || '—'}</div><div style="flex:1;border-left:3px solid #f59e0b;padding-left:10px">${L.filter(p => p.y === y).map(p => { const fc = FRONT.fcards.find(c => c.drive === p.id);
+          return `<div style="margin:4px 0">${fc ? '⭐ ' : ''}<b style="font-size:14px">${esc(p.t)}</b> <span class="muted" style="font-size:12px">${esc(p.j || '')}</span> <a href="${driveUrl(p.id)}" target="_blank" rel="noopener" style="font-size:12px">PDF</a>${fc ? `<div style="font-size:13px;background:#fffbeb;border-radius:8px;padding:6px 8px;margin-top:3px">${fc.html || ''}</div>` : ''}</div>`; }).join('')}</div></div>`).join('')}`;
+      d.ontoggle = () => { if (d.open) open = ln; };
+      LB.appendChild(d); });
+    $$('tr[data-l]', box).forEach(tr => tr.onclick = () => { open = tr.dataset.l; draw(); const t = $$('#foemLines details', box).find(x => x.dataset.l === open); if (t) t.scrollIntoView({ behavior: 'smooth' }); });
+    typeset(box);
+  };
+  draw();
+}
+function renderIdea(I) {
+  return `<details style="border-top:1px solid var(--line);padding:6px 0"><summary style="cursor:pointer"><b>${esc(I.title)}</b> <span class="pill" style="font-size:12px">可行性 ${'★'.repeat(I.feas || 0)}${'☆'.repeat(5 - (I.feas || 0))}</span>${(I.lines || []).map(l => ` <span class="pill sun" style="font-size:12px">${esc(l)}</span>`).join('')}</summary>
+    <div style="font-size:14px;margin-top:6px">${I.html || ''}</div></details>`;
+}
 function renderLitIndexGuest(box) {
   const P = FRONT.papers.filter(p => !p.si);
   const cnt = k => P.filter(p => p.tp.includes(k)).length;
@@ -1477,7 +1521,7 @@ function renderLitIndex(box, pch) {
     $('.lnote', box).innerHTML = `符合 ${arr.length} 篇${st.ch ? `・只看關卡 <b>${esc(chName(st.ch))}</b> <a href="javascript:void(0)" class="lclr">（取消）</a>` : ''}`;
     const c = $('.lclr', box); if (c) c.onclick = () => { st.ch = 0; list(); };
     $('.llist', box).innerHTML = arr.slice(0, st.n).map(p => { const cd = FRONT.cards.find(x => x.drive === p.id);
-      return `<div style="border-top:1px solid var(--line);padding:6px 0"><div>${cd ? '⭐ ' : ''}<b>${esc(p.t)}</b>${p.unk ? ' <span class="pill">標題待補</span>' : ''}${p.si ? ' <span class="pill">SI</span>' : ''}</div>
+      return `<div style="border-top:1px solid var(--line);padding:6px 0"><div>${p.foem ? '<span class="pill" style="background:#fef3c7;color:#92400e">🏠 FOEM</span> ' : ''}${cd ? '⭐ ' : ''}<b>${esc(p.t)}</b>${p.unk ? ' <span class="pill">標題待補</span>' : ''}${p.si ? ' <span class="pill">SI</span>' : ''}</div>
         <div class="muted" style="font-size:13px">${esc([p.j, p.y].filter(Boolean).join(' ・ ') || '期刊未知')}　📁 ${esc(p.f || 'Literature')}　<a href="${driveUrl(p.id)}" target="_blank" rel="noopener">開啟 PDF</a>${cd ? `　<a href="javascript:void(0)" onclick="go('frontier','${cd.id}')">看精讀卡</a>` : ''}</div>
         <div style="margin-top:2px">${p.tp.map(t => `<span class="pill sun" style="font-size:12px">${TOPICS[t] || esc(t)}</span>`).join('')}${(p.ch || []).filter(id => CH.find(x => x.id === id)).map(id => `<button class="btn small ghost" style="margin:1px;padding:1px 6px;font-size:12px" title="${esc((CH.find(x => x.id === id) || {}).title || '')}" title="${esc((CH.find(x => x.id === id) || {}).title || '')}" onclick="go('chapter',${id})">${esc(chName(id))}</button>`).join('')}</div></div>`; }).join('') +
       (arr.length > st.n ? `<button class="btn small ghost lmore" style="margin-top:6px">再顯示 30 篇（還有 ${arr.length - st.n}）</button>` : '');
